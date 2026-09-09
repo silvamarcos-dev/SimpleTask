@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: simple-task-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: simple_task
+      POSTGRES_USER: simple_task
+      POSTGRES_PASSWORD: simple_task
+
+    ports:
+      - "650:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U simple_task -d simple_task",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+
+volumes:
+  postgres_data:

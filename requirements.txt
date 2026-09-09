@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg[binary]
+alembic
+pydantic
+pydantic-settings
+email-validator
+bcrypt
+python-jose[cryptography]
+python-multipart
+apscheduler
+python-dateutil
+pytest
+httpx
+ruff
+argon2
