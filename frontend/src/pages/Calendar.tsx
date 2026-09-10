@@ -544,10 +544,7 @@ function Calendar() {
             SIDEBAR
         ================================================= */}
 
-        <DashboardSidebar
-          userName={user.name}
-          userEmail={user.email}
-        />
+        <DashboardSidebar />
 
         {/* =================================================
             MAIN
@@ -581,7 +578,7 @@ function Calendar() {
             </button>
           </div>
 
-          <div className="mx-auto max-w-[1500px] px-5 py-7 sm:px-8 lg:px-10 lg:py-10">
+          <div className="mx-auto max-w-375 px-5 py-7 sm:px-8 lg:px-10 lg:py-10">
 
             {/* =================================================
                 HEADER
@@ -800,7 +797,7 @@ function Calendar() {
                     return (
                       <div
                         key={dateString}
-                        className={`group relative min-h-[130px] border-b border-r border-zinc-200 p-2 transition sm:min-h-[160px] sm:p-3 ${
+                        className={`group relative min-h-32.5 border-b border-r border-zinc-200 p-2 transition sm:min-h-40 sm:p-3 ${
                           !isCurrentMonth
                             ? "bg-zinc-50/70"
                             : "bg-white"
