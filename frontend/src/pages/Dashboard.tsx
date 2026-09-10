@@ -1,3 +1,5 @@
+import axios from "axios";
+
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -117,6 +119,9 @@ function Dashboard() {
   const [error, setError] =
     useState("");
 
+  const [redirecting, setRedirecting] =
+    useState(false);
+
   /* =======================================================
      LOAD DATA
   ======================================================= */
@@ -137,7 +142,15 @@ function Dashboard() {
         setUser(currentUser);
         setDashboard(summary);
         setTasks(allTasks);
-      } catch {
+      } catch (error) {
+        if (
+          axios.isAxiosError(error) &&
+          error.response?.status === 401
+        ) {
+          setRedirecting(true);
+          return;
+        }
+
         setError(
           "Não foi possível carregar o dashboard.",
         );
@@ -148,6 +161,20 @@ function Dashboard() {
 
     loadDashboard();
   }, []);
+
+  /* =======================================================
+     REDIRECT AFTER EXPIRED SESSION
+  ======================================================= */
+
+  useEffect(() => {
+    if (!redirecting) {
+      return;
+    }
+
+    navigate("/login", {
+      replace: true,
+    });
+  }, [redirecting, navigate]);
 
   /* =======================================================
      TOGGLE TASK
@@ -393,14 +420,16 @@ function Dashboard() {
      LOADING
   ======================================================= */
 
-  if (loading) {
+  if (loading || redirecting) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-zinc-950">
         <div className="text-center">
           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-zinc-700 border-t-white" />
 
           <p className="mt-4 text-sm text-zinc-400">
-            Carregando seu workspace...
+            {redirecting
+              ? "Sessão expirada. Redirecionando..."
+              : "Carregando seu workspace..."}
           </p>
         </div>
       </main>

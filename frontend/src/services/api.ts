@@ -1,6 +1,9 @@
 import axios from "axios";
 
-import { getToken } from "../lib/authStorage";
+import {
+  getToken,
+  removeToken,
+} from "../lib/authStorage";
 
 const apiBaseUrl =
   import.meta.env.VITE_API_URL ||
@@ -23,3 +26,18 @@ api.interceptors.request.use((config) => {
 
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      removeToken();
+
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
+
+    return Promise.reject(error);
+  },
+);
