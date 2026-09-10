@@ -3,7 +3,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, calendar, dashboard, notifications, tasks
+from app.api import (
+    auth,
+    calendar,
+    dashboard,
+    maintenance,
+    notifications,
+    tasks,
+)
 from app.core.config import get_settings
 from app.jobs.scheduler import start_scheduler, stop_scheduler
 
@@ -46,7 +53,7 @@ app.include_router(tasks.router)
 app.include_router(dashboard.router)
 app.include_router(calendar.router)
 app.include_router(notifications.router)
-
+app.include_router(maintenance.router)
 
 @app.get(
     "/",

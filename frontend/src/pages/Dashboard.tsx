@@ -484,10 +484,7 @@ function Dashboard() {
       <div className="flex min-h-screen">
         {/* SIDEBAR */}
 
-        <DashboardSidebar
-          userName={user.name}
-          userEmail={user.email}
-        />
+        <DashboardSidebar />
 
         {/* MAIN */}
 
@@ -516,7 +513,7 @@ function Dashboard() {
             </button>
           </div>
 
-          <div className="mx-auto max-w-[1500px] px-5 py-7 sm:px-8 lg:px-10 lg:py-10">
+          <div className="mx-auto max-w-375 px-5 py-7 sm:px-8 lg:px-10 lg:py-10">
             {/* PAGE HEADER */}
 
             <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
@@ -662,16 +659,26 @@ function Dashboard() {
                   </p>
                 </div>
 
+                {/* FILTROS */}
+
                 <button
                   type="button"
-                  onClick={() =>
-                    navigate(
-                      "/tasks/new",
-                    )
-                  }
-                  className="hidden rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-950 sm:block"
+                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-950"
                 >
-                  + Nova tarefa
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <path d="M4 6h16" />
+                    <path d="M7 12h10" />
+                    <path d="M10 18h4" />
+                  </svg>
+
+                  Filtros
                 </button>
               </div>
 

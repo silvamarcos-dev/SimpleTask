@@ -8,6 +8,7 @@ from app.database.database import Base
 
 
 if TYPE_CHECKING:
+    from app.models.maintenance import Maintenance
     from app.models.task import Task
 
 
@@ -50,6 +51,11 @@ class User(Base):
     )
 
     tasks: Mapped[list["Task"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    maintenances: Mapped[list["Maintenance"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
     )
