@@ -481,7 +481,7 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#f7f7f8] text-zinc-900">
-      <div className="flex min-h-screen">
+      <div className="min-h-screen lg:flex">
         {/* SIDEBAR */}
 
         <DashboardSidebar />
@@ -489,35 +489,11 @@ function Dashboard() {
         {/* MAIN */}
 
         <main className="min-w-0 flex-1">
-          {/* MOBILE HEADER */}
-
-          <div className="flex items-center justify-between border-b border-zinc-200 bg-white px-5 py-4 lg:hidden">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-950 text-xs font-bold text-white">
-                ST
-              </div>
-
-              <span className="font-semibold">
-                Simple Task
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/login")
-              }
-              className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100"
-            >
-              Sair
-            </button>
-          </div>
-
-          <div className="mx-auto max-w-375 px-5 py-7 sm:px-8 lg:px-10 lg:py-10">
+          <div className="mx-auto max-w-375 px-4 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
             {/* PAGE HEADER */}
 
-            <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-              <div>
+            <header className="mb-7 flex flex-col gap-5 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
+              <div className="min-w-0">
                 <p className="text-sm font-medium capitalize text-zinc-400">
                   {formatToday()}
                 </p>
@@ -538,7 +514,7 @@ function Dashboard() {
                     "/tasks/new",
                   )
                 }
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 hover:shadow-md"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-950 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 hover:shadow-md sm:w-auto"
               >
                 <span className="text-lg leading-none">
                   +
@@ -648,8 +624,8 @@ function Dashboard() {
             {/* KANBAN */}
 
             <section className="mt-8">
-              <div className="mb-4 flex items-end justify-between">
-                <div>
+              <div className="mb-4 flex items-end justify-between gap-3">
+                <div className="min-w-0">
                   <h2 className="text-lg font-semibold text-zinc-950">
                     Suas tarefas
                   </h2>
@@ -663,7 +639,7 @@ function Dashboard() {
 
                 <button
                   type="button"
-                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-950"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-950"
                 >
                   <svg
                     width="15"
