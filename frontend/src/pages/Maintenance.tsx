@@ -321,7 +321,7 @@ function MaintenancePage() {
 
   return (
     <div className="min-h-screen bg-[#f7f7f8] text-zinc-900">
-      <div className="flex min-h-screen">
+      <div className="min-h-screen lg:flex">
         {/* =================================================
             SIDEBAR
         ================================================= */}
@@ -333,39 +333,17 @@ function MaintenancePage() {
         ================================================= */}
 
         <main className="min-w-0 flex-1">
-          {/* MOBILE HEADER */}
+          {/* =================================================
+              CONTENT
+          ================================================= */}
 
-          <div className="flex items-center justify-between border-b border-zinc-200 bg-white px-5 py-4 lg:hidden">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-950 text-xs font-bold text-white">
-                ST
-              </div>
-
-              <span className="font-semibold">
-                Simple Task
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/login")
-              }
-              className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100"
-            >
-              Sair
-            </button>
-          </div>
-
-          {/* CONTENT */}
-
-          <div className="mx-auto max-w-375 px-5 py-7 sm:px-8 lg:px-10 lg:py-10">
+          <div className="mx-auto max-w-375 px-4 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
             {/* =================================================
                 HEADER
             ================================================= */}
 
-            <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-              <div>
+            <header className="mb-7 flex flex-col gap-5 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
+              <div className="min-w-0">
                 <p className="text-sm font-medium text-zinc-400">
                   Operação
                 </p>
@@ -374,7 +352,7 @@ function MaintenancePage() {
                   Manutenções
                 </h1>
 
-                <p className="mt-2 text-sm text-zinc-500">
+                <p className="mt-2 max-w-xl text-sm leading-5 text-zinc-500">
                   Acompanhe e organize as manutenções dos seus imóveis.
                 </p>
               </div>
@@ -390,7 +368,7 @@ function MaintenancePage() {
                     "/dashboard/maintenance/new",
                   )
                 }
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 hover:shadow-md"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-950 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 hover:shadow-md sm:w-auto"
               >
                 <span className="text-lg leading-none">
                   +
@@ -405,15 +383,15 @@ function MaintenancePage() {
             ================================================= */}
 
             {error && (
-              <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-                <p className="text-sm text-red-700">
+              <div className="mb-6 flex items-start justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                <p className="text-sm leading-5 text-red-700">
                   {error}
                 </p>
 
                 <button
                   type="button"
                   onClick={() => setError("")}
-                  className="text-xs font-semibold text-red-600 hover:text-red-800"
+                  className="shrink-0 text-xs font-semibold text-red-600 hover:text-red-800"
                 >
                   Fechar
                 </button>
@@ -428,12 +406,12 @@ function MaintenancePage() {
               {/* TOTAL */}
 
               <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-medium text-zinc-500">
                     Total
                   </p>
 
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700">
                     <svg
                       width="18"
                       height="18"
@@ -460,12 +438,12 @@ function MaintenancePage() {
               {/* PENDING */}
 
               <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-medium text-zinc-500">
                     Pendentes
                   </p>
 
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-500">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-500">
                     <svg
                       width="18"
                       height="18"
@@ -503,12 +481,12 @@ function MaintenancePage() {
               {/* IN PROGRESS */}
 
               <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-medium text-zinc-500">
                     Em andamento
                   </p>
 
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
                     <svg
                       width="18"
                       height="18"
@@ -547,12 +525,12 @@ function MaintenancePage() {
               {/* COMPLETED */}
 
               <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-medium text-zinc-500">
                     Concluídas
                   </p>
 
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
                     <svg
                       width="18"
                       height="18"
@@ -613,7 +591,6 @@ function MaintenancePage() {
                       strokeWidth="1.8"
                     >
                       <path d="M14.7 6.3a4 4 0 0 0-5.1 5.1L4 17v3h3l5.6-5.6a4 4 0 0 0 5.1-5.1l-2.1 2.1-2.1-.7-.7-2.1z" />
-
                       <path d="m14 14 6 6" />
                     </svg>
                   </div>
@@ -622,7 +599,7 @@ function MaintenancePage() {
                     Nenhuma manutenção cadastrada
                   </h3>
 
-                  <p className="mx-auto mt-1 max-w-sm text-xs text-zinc-400">
+                  <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-zinc-400">
                     Cadastre sua primeira manutenção para começar a acompanhar os serviços.
                   </p>
 
@@ -652,116 +629,54 @@ function MaintenancePage() {
                     (maintenance) => (
                       <article
                         key={maintenance.id}
-                        className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:shadow-md"
+                        className="min-w-0 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:shadow-md sm:p-5"
                       >
                         {/* =================================================
                            CARD HEADER
                         ================================================= */}
 
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="truncate text-sm font-semibold text-zinc-950">
-                                {
-                                  maintenance.title
-                                }
-                              </h3>
+                        <div className="flex flex-col gap-4">
+                          <div className="flex min-w-0 items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="min-w-0 wrap-break-word text-sm font-semibold text-zinc-950">
+                                  {
+                                    maintenance.title
+                                  }
+                                </h3>
 
-                              <PriorityBadge
-                                priority={
-                                  maintenance.priority
-                                }
-                              />
+                                <PriorityBadge
+                                  priority={
+                                    maintenance.priority
+                                  }
+                                />
+                              </div>
+
+                              {maintenance.description && (
+                                <p className="mt-2 line-clamp-2 text-xs leading-5 text-zinc-500">
+                                  {
+                                    maintenance.description
+                                  }
+                                </p>
+                              )}
                             </div>
 
-                            {maintenance.description && (
-                              <p className="mt-2 line-clamp-2 text-xs leading-5 text-zinc-500">
-                                {
-                                  maintenance.description
+                            {/* ACTIONS */}
+
+                            <div className="flex shrink-0 items-center gap-2">
+                              {/* EDIT */}
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleEditMaintenance(
+                                    maintenance,
+                                  )
                                 }
-                              </p>
-                            )}
-                          </div>
-
-                          {/* =================================================
-                             ACTIONS
-                          ================================================= */}
-
-                          <div className="flex shrink-0 items-center gap-2">
-                            <StatusBadge
-                              status={
-                                maintenance.status
-                              }
-                            />
-
-                            {/* EDIT */}
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleEditMaintenance(
-                                  maintenance,
-                                )
-                              }
-                              title="Editar manutenção"
-                              aria-label={`Editar manutenção ${maintenance.title}`}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-400 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
-                            >
-                              <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
+                                title="Editar manutenção"
+                                aria-label={`Editar manutenção ${maintenance.title}`}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-400 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
                               >
-                                <path d="M12 20h9" />
-
-                                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" />
-                              </svg>
-                            </button>
-
-                            {/* DELETE */}
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleDeleteMaintenance(
-                                  maintenance,
-                                )
-                              }
-                              disabled={
-                                deletingId ===
-                                maintenance.id
-                              }
-                              title="Excluir manutenção"
-                              aria-label={`Excluir manutenção ${maintenance.title}`}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {deletingId ===
-                              maintenance.id ? (
-                                <svg
-                                  className="h-4 w-4 animate-spin"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                >
-                                  <circle
-                                    cx="12"
-                                    cy="12"
-                                    r="9"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    className="opacity-25"
-                                  />
-
-                                  <path
-                                    d="M21 12a9 9 0 0 1-9 9"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                  />
-                                </svg>
-                              ) : (
                                 <svg
                                   width="16"
                                   height="16"
@@ -770,18 +685,79 @@ function MaintenancePage() {
                                   stroke="currentColor"
                                   strokeWidth="1.8"
                                 >
-                                  <path d="M3 6h18" />
-
-                                  <path d="M8 6V4h8v2" />
-
-                                  <path d="M19 6l-1 15H6L5 6" />
-
-                                  <path d="M10 11v6" />
-
-                                  <path d="M14 11v6" />
+                                  <path d="M12 20h9" />
+                                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" />
                                 </svg>
-                              )}
-                            </button>
+                              </button>
+
+                              {/* DELETE */}
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleDeleteMaintenance(
+                                    maintenance,
+                                  )
+                                }
+                                disabled={
+                                  deletingId ===
+                                  maintenance.id
+                                }
+                                title="Excluir manutenção"
+                                aria-label={`Excluir manutenção ${maintenance.title}`}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {deletingId ===
+                                maintenance.id ? (
+                                  <svg
+                                    className="h-4 w-4 animate-spin"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                  >
+                                    <circle
+                                      cx="12"
+                                      cy="12"
+                                      r="9"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      className="opacity-25"
+                                    />
+
+                                    <path
+                                      d="M21 12a9 9 0 0 1-9 9"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                    />
+                                  </svg>
+                                ) : (
+                                  <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                  >
+                                    <path d="M3 6h18" />
+                                    <path d="M8 6V4h8v2" />
+                                    <path d="M19 6l-1 15H6L5 6" />
+                                    <path d="M10 11v6" />
+                                    <path d="M14 11v6" />
+                                  </svg>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* STATUS */}
+
+                          <div>
+                            <StatusBadge
+                              status={
+                                maintenance.status
+                              }
+                            />
                           </div>
                         </div>
 
@@ -809,12 +785,12 @@ function MaintenancePage() {
                             </svg>
                           </div>
 
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-xs font-medium text-zinc-700">
                               Localização
                             </p>
 
-                            <p className="mt-0.5 text-xs text-zinc-400">
+                            <p className="mt-0.5 wrap-break-word text-xs leading-5 text-zinc-400">
                               {
                                 getLocationLabel(
                                   maintenance,
@@ -853,7 +829,7 @@ function MaintenancePage() {
                               </svg>
                             </div>
 
-                            <div>
+                            <div className="min-w-0">
                               <p className="text-[11px] text-zinc-400">
                                 Agendamento
                               </p>
@@ -880,7 +856,7 @@ function MaintenancePage() {
                                 stroke="currentColor"
                                 strokeWidth="1.8"
                               >
-                                <path d="M20.59 13.41 11 3.83V3H4v7h.83l9.58 9.59a2 2 0 0 0 2.83 0l3.35-3.35a2 2 0 0 0 0-2.83Z" />
+                                <path d="M20.59 13.41 11 3.83V3H4v7h.83l9.58 9.59a2 2 0 0 0 2.83 0l3.35-3.35a2 2 0 0 0 0-2.83-2.83Z" />
 
                                 <circle
                                   cx="7.5"
@@ -890,12 +866,12 @@ function MaintenancePage() {
                               </svg>
                             </div>
 
-                            <div>
+                            <div className="min-w-0">
                               <p className="text-[11px] text-zinc-400">
                                 Categoria
                               </p>
 
-                              <p className="mt-0.5 text-xs font-medium text-zinc-700">
+                              <p className="mt-0.5 wrap-break-word text-xs font-medium text-zinc-700">
                                 {
                                   maintenance.category ||
                                   "Não informada"
@@ -915,15 +891,15 @@ function MaintenancePage() {
                               Prestador
                             </p>
 
-                            <div className="mt-1 flex items-center justify-between gap-3">
-                              <p className="text-xs font-medium text-zinc-700">
+                            <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                              <p className="wrap-break-word text-xs font-medium text-zinc-700">
                                 {
                                   maintenance.provider_name
                                 }
                               </p>
 
                               {maintenance.provider_phone && (
-                                <p className="text-xs text-zinc-400">
+                                <p className="wrap-break-word text-xs text-zinc-400">
                                   {
                                     maintenance.provider_phone
                                   }
