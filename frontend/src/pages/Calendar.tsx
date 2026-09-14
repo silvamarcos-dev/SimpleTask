@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import DashboardSidebar from "../components/dashboard/DashboardSidebar";
 import { getCalendarTasks } from "../services/calendar";
+import { deleteTask } from "../services/tasks";
 import { getCurrentUser } from "../services/user";
 
 import type { Task } from "../types/task";
@@ -174,6 +175,9 @@ function Calendar() {
   const [error, setError] =
     useState("");
 
+  const [deletingTaskId, setDeletingTaskId] =
+    useState<number | null>(null);
+
   /* =======================================================
      LOAD CALENDAR
   ======================================================= */
@@ -228,6 +232,44 @@ function Calendar() {
 
     loadCalendar();
   }, [currentMonth]);
+
+  /* =======================================================
+     DELETE TASK
+  ======================================================= */
+
+  async function handleDeleteTask(
+    taskId: number,
+  ) {
+    const confirmed =
+      window.confirm(
+        "Tem certeza que deseja excluir esta tarefa?",
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingTaskId(taskId);
+    setError("");
+
+    try {
+      await deleteTask(taskId);
+
+      setTasks(
+        (currentTasks) =>
+          currentTasks.filter(
+            (task) =>
+              task.id !== taskId,
+          ),
+      );
+    } catch {
+      setError(
+        "Não foi possível excluir a tarefa.",
+      );
+    } finally {
+      setDeletingTaskId(null);
+    }
+  }
 
   /* =======================================================
      CALENDAR DAYS
@@ -782,25 +824,52 @@ function Calendar() {
                                       task.status ===
                                       "concluida";
 
+                                    const isDeleting =
+                                      deletingTaskId ===
+                                      task.id;
+
                                     return (
-                                      <button
+                                      <div
                                         key={
                                           task.id
                                         }
-                                        type="button"
+                                        role="button"
+                                        tabIndex={0}
                                         onClick={() =>
                                           navigate(
                                             `/tasks/${task.id}/edit`,
                                           )
                                         }
-                                        className={`block w-full rounded-lg border px-2 py-1.5 text-left transition ${getUrgencyClass(
+                                        onKeyDown={(
+                                          event,
+                                        ) => {
+                                          if (
+                                            event.key ===
+                                              "Enter" ||
+                                            event.key ===
+                                              " "
+                                          ) {
+                                            event.preventDefault();
+
+                                            navigate(
+                                              `/tasks/${task.id}/edit`,
+                                            );
+                                          }
+                                        }}
+                                        className={`group/task relative cursor-pointer rounded-lg border px-2 py-1.5 pr-8 text-left transition ${getUrgencyClass(
                                           task,
                                         )} ${
                                           completed
                                             ? "opacity-50"
                                             : ""
+                                        } ${
+                                          isDeleting
+                                            ? "pointer-events-none opacity-50"
+                                            : ""
                                         }`}
                                       >
+
+                                        {/* TASK CONTENT */}
 
                                         <div className="flex min-w-0 items-center gap-1.5">
 
@@ -831,7 +900,49 @@ function Calendar() {
                                           </span>
                                         )}
 
-                                      </button>
+                                        {/* DELETE */}
+
+                                        <button
+                                          type="button"
+                                          title="Excluir tarefa"
+                                          aria-label={`Excluir tarefa ${task.title}`}
+                                          disabled={
+                                            isDeleting
+                                          }
+                                          onClick={(
+                                            event,
+                                          ) => {
+                                            event.stopPropagation();
+
+                                            handleDeleteTask(
+                                              task.id,
+                                            );
+                                          }}
+                                          className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-md text-current opacity-100 transition hover:bg-white/70 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50 sm:opacity-0 sm:group-hover/task:opacity-100"
+                                        >
+                                          {isDeleting ? (
+                                            <span className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
+                                          ) : (
+                                            <svg
+                                              width="12"
+                                              height="12"
+                                              viewBox="0 0 24 24"
+                                              fill="none"
+                                              stroke="currentColor"
+                                              strokeWidth="2"
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                            >
+                                              <path d="M3 6h18" />
+                                              <path d="M8 6V4h8v2" />
+                                              <path d="M19 6l-1 14H6L5 6" />
+                                              <path d="M10 11v5" />
+                                              <path d="M14 11v5" />
+                                            </svg>
+                                          )}
+                                        </button>
+
+                                      </div>
                                     );
                                   },
                                 )}
