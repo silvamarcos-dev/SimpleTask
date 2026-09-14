@@ -3,6 +3,12 @@ import type {
   UrgencyLevel,
 } from "./taskEnums";
 
+export type RecurrenceType =
+  | "nenhuma"
+  | "diaria"
+  | "semanal"
+  | "mensal";
+
 export interface Task {
   id: number;
 
@@ -27,6 +33,8 @@ export interface Task {
 
   // Recorrência
   is_recurring: boolean;
+
+  recurrence_type: RecurrenceType;
 
   recurrence_interval_months: number | null;
 
@@ -62,6 +70,8 @@ export interface CreateTaskRequest {
 
   // Recorrência
   is_recurring?: boolean;
+
+  recurrence_type?: RecurrenceType;
 
   recurrence_interval_months?: number | null;
 }

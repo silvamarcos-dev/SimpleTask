@@ -1,15 +1,62 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.task import Task, TaskStatus, UrgencyLevel
+from app.models.task import (
+    RecurrenceType,
+    Task,
+    TaskStatus,
+    UrgencyLevel,
+)
 from app.models.user import User
 from app.schemas.task import TaskCreate, TaskUpdate
 
 
 class TaskService:
+
+    # =====================================================
+    # RECORRÊNCIA
+    # =====================================================
+
+    @staticmethod
+    def _calculate_next_recurrence_date(
+        task: Task,
+    ) -> date | None:
+        """
+        Calcula a próxima ocorrência de uma tarefa recorrente.
+
+        Diária  -> +1 dia
+        Semanal -> +7 dias
+        Mensal  -> +N meses
+        """
+
+        if not task.is_recurring:
+            return None
+
+        base_date = date.today()
+
+        if task.recurrence_type == RecurrenceType.DAILY:
+            return base_date + timedelta(days=1)
+
+        if task.recurrence_type == RecurrenceType.WEEKLY:
+            return base_date + timedelta(days=7)
+
+        if task.recurrence_type == RecurrenceType.MONTHLY:
+            if task.recurrence_interval_months is None:
+                return None
+
+            return base_date + relativedelta(
+                months=task.recurrence_interval_months,
+            )
+
+        return None
+
+    # =====================================================
+    # CRIAÇÃO
+    # =====================================================
+
     @staticmethod
     def create(
         db: Session,
@@ -22,31 +69,26 @@ class TaskService:
             urgency=task_data.urgency,
             scheduled_date=task_data.scheduled_date,
             scheduled_time=task_data.scheduled_time,
-
             building=(
                 task_data.building.strip()
                 if task_data.building
                 else None
             ),
-
             block=(
                 task_data.block.strip()
                 if task_data.block
                 else None
             ),
-
             apartment=(
                 task_data.apartment.strip()
                 if task_data.apartment
                 else None
             ),
-
             is_recurring=task_data.is_recurring,
-
+            recurrence_type=task_data.recurrence_type,
             recurrence_interval_months=(
                 task_data.recurrence_interval_months
             ),
-
             status=TaskStatus.PENDING,
             user_id=user.id,
         )
@@ -56,6 +98,10 @@ class TaskService:
         db.refresh(task)
 
         return task
+
+    # =====================================================
+    # BUSCAR POR ID
+    # =====================================================
 
     @staticmethod
     def get_by_id(
@@ -69,6 +115,10 @@ class TaskService:
         )
 
         return db.scalar(statement)
+
+    # =====================================================
+    # LISTAGEM
+    # =====================================================
 
     @staticmethod
     def list(
@@ -107,6 +157,10 @@ class TaskService:
             db.scalars(statement).all()
         )
 
+    # =====================================================
+    # ATUALIZAÇÃO
+    # =====================================================
+
     @staticmethod
     def update(
         db: Session,
@@ -131,10 +185,7 @@ class TaskService:
         # =================================================
 
         if task.status == TaskStatus.COMPLETED:
-            if (
-                previous_status
-                != TaskStatus.COMPLETED
-            ):
+            if previous_status != TaskStatus.COMPLETED:
                 task.completed_at = (
                     datetime.now(timezone.utc)
                 )
@@ -143,37 +194,30 @@ class TaskService:
                 # RECORRÊNCIA
                 # =========================================
 
-                if (
-                    task.is_recurring
-                    and task.recurrence_interval_months
-                    is not None
-                ):
-                    task.next_recurrence_date = (
-                        date.today()
-                        + relativedelta(
-                            months=task.recurrence_interval_months,
-                        )
+                task.next_recurrence_date = (
+                    TaskService._calculate_next_recurrence_date(
+                        task
                     )
-                else:
-                    task.next_recurrence_date = None
+                )
 
         # =================================================
-        # TAREFA VOLTOU PARA PENDENTE
+        # TAREFA VOLTOU PARA PENDENTE / EM ANDAMENTO
         # =================================================
 
         else:
             task.completed_at = None
 
-            if (
-                previous_status
-                == TaskStatus.COMPLETED
-            ):
+            if previous_status == TaskStatus.COMPLETED:
                 task.next_recurrence_date = None
 
         db.commit()
         db.refresh(task)
 
         return task
+
+    # =====================================================
+    # EXCLUSÃO
+    # =====================================================
 
     @staticmethod
     def delete(

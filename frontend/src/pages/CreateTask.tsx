@@ -2,14 +2,19 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { createTask } from "../services/tasks";
-import type { UrgencyLevel } from "../types/taskEnums";
-
+import type {
+  RecurrenceType,
+} from "../types/task";
+import type {
+  UrgencyLevel,
+} from "../types/taskEnums";
 
 function CreateTask() {
   const navigate = useNavigate();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+
   const [urgency, setUrgency] =
     useState<UrgencyLevel>("media");
 
@@ -31,6 +36,9 @@ function CreateTask() {
   const [isRecurring, setIsRecurring] =
     useState(false);
 
+  const [recurrenceType, setRecurrenceType] =
+    useState<RecurrenceType>("semanal");
+
   const [recurrenceInterval, setRecurrenceInterval] =
     useState("3");
 
@@ -39,7 +47,6 @@ function CreateTask() {
 
   const [error, setError] =
     useState("");
-
 
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>,
@@ -75,8 +82,14 @@ function CreateTask() {
         is_recurring:
           isRecurring,
 
-        recurrence_interval_months:
+        recurrence_type:
           isRecurring
+            ? recurrenceType
+            : "nenhuma",
+
+        recurrence_interval_months:
+          isRecurring &&
+          recurrenceType === "mensal"
             ? Number(recurrenceInterval)
             : null,
       });
@@ -91,7 +104,6 @@ function CreateTask() {
       setLoading(false);
     }
   }
-
 
   return (
     <div className="min-h-screen bg-[#f7f7f8] px-4 py-8 text-zinc-900 sm:px-6 lg:px-8">
@@ -122,7 +134,6 @@ function CreateTask() {
 
         </div>
 
-
         {/* FORM */}
 
         <form
@@ -138,7 +149,6 @@ function CreateTask() {
             </div>
           )}
 
-
           {/* BASIC INFORMATION */}
 
           <div>
@@ -152,7 +162,6 @@ function CreateTask() {
             </p>
 
           </div>
-
 
           <div className="mt-5 space-y-5">
 
@@ -178,7 +187,6 @@ function CreateTask() {
 
             </div>
 
-
             {/* DESCRIPTION */}
 
             <div>
@@ -199,7 +207,6 @@ function CreateTask() {
               />
 
             </div>
-
 
             {/* URGENCY */}
 
@@ -259,7 +266,6 @@ function CreateTask() {
 
           </div>
 
-
           {/* DATE */}
 
           <div className="mt-8 border-t border-zinc-100 pt-8">
@@ -271,7 +277,6 @@ function CreateTask() {
             <p className="mt-1 text-xs text-zinc-400">
               Quando essa tarefa deverá ser realizada?
             </p>
-
 
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
 
@@ -294,7 +299,6 @@ function CreateTask() {
                 />
 
               </div>
-
 
               <div>
 
@@ -319,7 +323,6 @@ function CreateTask() {
 
           </div>
 
-
           {/* LOCATION */}
 
           <div className="mt-8 border-t border-zinc-100 pt-8">
@@ -331,7 +334,6 @@ function CreateTask() {
             <p className="mt-1 text-xs text-zinc-400">
               Informe onde essa tarefa será realizada.
             </p>
-
 
             <div className="mt-5 grid gap-5 sm:grid-cols-3">
 
@@ -358,7 +360,6 @@ function CreateTask() {
 
               </div>
 
-
               {/* BLOCK */}
 
               <div>
@@ -381,7 +382,6 @@ function CreateTask() {
                 />
 
               </div>
-
 
               {/* APARTMENT */}
 
@@ -410,7 +410,6 @@ function CreateTask() {
 
           </div>
 
-
           {/* RECURRENCE */}
 
           <div className="mt-8 border-t border-zinc-100 pt-8">
@@ -424,6 +423,7 @@ function CreateTask() {
                     !isRecurring,
                   )
                 }
+                aria-label="Ativar tarefa recorrente"
                 className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
                   isRecurring
                     ? "border-zinc-900 bg-zinc-900 text-white"
@@ -445,7 +445,6 @@ function CreateTask() {
                 )}
 
               </button>
-
 
               <div>
 
@@ -469,45 +468,99 @@ function CreateTask() {
 
             </div>
 
-
             {isRecurring && (
-              <div className="mt-5 max-w-xs">
+              <div className="mt-5">
 
-                <label className="mb-2 block text-sm font-medium text-zinc-700">
-                  Repetir a cada
+                <label className="mb-3 block text-sm font-medium text-zinc-700">
+                  Frequência
                 </label>
 
-                <div className="flex items-center gap-3">
+                <div className="grid gap-2 sm:grid-cols-3">
 
-                  <input
-                    type="number"
-                    min="1"
-                    max="120"
-                    value={recurrenceInterval}
-                    onChange={(event) =>
-                      setRecurrenceInterval(
-                        event.target.value,
-                      )
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRecurrenceType("diaria")
                     }
-                    required
-                    className="w-24 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
-                  />
+                    className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${
+                      recurrenceType === "diaria"
+                        ? "border-zinc-900 bg-zinc-950 text-white"
+                        : "border-zinc-200 text-zinc-600 hover:border-zinc-300"
+                    }`}
+                  >
+                    Diária
+                  </button>
 
-                  <span className="text-sm text-zinc-500">
-                    {Number(
-                      recurrenceInterval,
-                    ) === 1
-                      ? "mês"
-                      : "meses"}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRecurrenceType("semanal")
+                    }
+                    className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${
+                      recurrenceType === "semanal"
+                        ? "border-zinc-900 bg-zinc-950 text-white"
+                        : "border-zinc-200 text-zinc-600 hover:border-zinc-300"
+                    }`}
+                  >
+                    Semanal
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRecurrenceType("mensal")
+                    }
+                    className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${
+                      recurrenceType === "mensal"
+                        ? "border-zinc-900 bg-zinc-950 text-white"
+                        : "border-zinc-200 text-zinc-600 hover:border-zinc-300"
+                    }`}
+                  >
+                    Mensal
+                  </button>
 
                 </div>
+
+                {recurrenceType === "mensal" && (
+                  <div className="mt-5 max-w-xs">
+
+                    <label className="mb-2 block text-sm font-medium text-zinc-700">
+                      Repetir a cada
+                    </label>
+
+                    <div className="flex items-center gap-3">
+
+                      <input
+                        type="number"
+                        min="1"
+                        max="120"
+                        value={recurrenceInterval}
+                        onChange={(event) =>
+                          setRecurrenceInterval(
+                            event.target.value,
+                          )
+                        }
+                        required
+                        className="w-24 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
+                      />
+
+                      <span className="text-sm text-zinc-500">
+                        {Number(
+                          recurrenceInterval,
+                        ) === 1
+                          ? "mês"
+                          : "meses"}
+                      </span>
+
+                    </div>
+
+                  </div>
+                )}
 
               </div>
             )}
 
           </div>
-
 
           {/* ACTIONS */}
 
@@ -523,7 +576,6 @@ function CreateTask() {
             >
               Cancelar
             </button>
-
 
             <button
               type="submit"

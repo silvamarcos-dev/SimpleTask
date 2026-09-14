@@ -2,6 +2,7 @@ import { api } from "./api";
 
 import type {
   CreateTaskRequest,
+  RecurrenceType,
   Task,
 } from "../types/task";
 
@@ -9,7 +10,6 @@ import type {
   TaskStatus,
   UrgencyLevel,
 } from "../types/taskEnums";
-
 
 export interface UpdateTaskRequest {
   title?: string;
@@ -34,9 +34,10 @@ export interface UpdateTaskRequest {
   // Recorrência
   is_recurring?: boolean;
 
+  recurrence_type?: RecurrenceType;
+
   recurrence_interval_months?: number | null;
 }
-
 
 export async function createTask(
   data: CreateTaskRequest,
@@ -49,7 +50,6 @@ export async function createTask(
   return response.data;
 }
 
-
 export async function getTasks(): Promise<Task[]> {
   const response = await api.get<Task[]>(
     "/tasks",
@@ -57,7 +57,6 @@ export async function getTasks(): Promise<Task[]> {
 
   return response.data;
 }
-
 
 export async function updateTask(
   taskId: number,
@@ -70,7 +69,6 @@ export async function updateTask(
 
   return response.data;
 }
-
 
 export async function deleteTask(
   taskId: number,

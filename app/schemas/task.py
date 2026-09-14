@@ -2,7 +2,11 @@ from datetime import date, datetime, time
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.models.task import TaskStatus, UrgencyLevel
+from app.models.task import (
+    RecurrenceType,
+    TaskStatus,
+    UrgencyLevel,
+)
 
 
 class TaskBase(BaseModel):
@@ -47,6 +51,8 @@ class TaskBase(BaseModel):
 
     is_recurring: bool = False
 
+    recurrence_type: RecurrenceType = RecurrenceType.NONE
+
     recurrence_interval_months: int | None = Field(
         default=None,
         ge=1,
@@ -55,11 +61,40 @@ class TaskBase(BaseModel):
 
     @model_validator(mode="after")
     def validate_recurrence(self):
-        if self.is_recurring:
+        # =================================================
+        # NÃO RECORRENTE
+        # =================================================
+
+        if not self.is_recurring:
+            self.recurrence_type = RecurrenceType.NONE
+            self.recurrence_interval_months = None
+            return self
+
+        # =================================================
+        # RECORRENTE
+        # =================================================
+
+        if self.recurrence_type == RecurrenceType.NONE:
+            raise ValueError(
+                "Uma tarefa recorrente precisa informar "
+                "um tipo de recorrência."
+            )
+
+        # =================================================
+        # RECORRÊNCIA MENSAL
+        # =================================================
+
+        if self.recurrence_type == RecurrenceType.MONTHLY:
             if self.recurrence_interval_months is None:
                 raise ValueError(
-                    "Uma tarefa recorrente precisa informar o intervalo em meses."
+                    "Uma tarefa mensal precisa informar "
+                    "o intervalo em meses."
                 )
+
+        # =================================================
+        # DIÁRIA / SEMANAL
+        # =================================================
+
         else:
             self.recurrence_interval_months = None
 
@@ -114,6 +149,8 @@ class TaskUpdate(BaseModel):
     # =====================================================
 
     is_recurring: bool | None = None
+
+    recurrence_type: RecurrenceType | None = None
 
     recurrence_interval_months: int | None = Field(
         default=None,

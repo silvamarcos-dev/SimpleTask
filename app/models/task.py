@@ -34,6 +34,13 @@ class TaskStatus(str, Enum):
     COMPLETED = "concluida"
 
 
+class RecurrenceType(str, Enum):
+    NONE = "nenhuma"
+    DAILY = "diaria"
+    WEEKLY = "semanal"
+    MONTHLY = "mensal"
+
+
 class Task(Base):
     __tablename__ = "tasks"
 
@@ -107,6 +114,15 @@ class Task(Base):
     is_recurring: Mapped[bool] = mapped_column(
         default=False,
         nullable=False,
+    )
+
+    recurrence_type: Mapped[RecurrenceType] = mapped_column(
+        SQLEnum(
+            RecurrenceType,
+            name="recurrence_type",
+        ),
+        nullable=False,
+        default=RecurrenceType.NONE,
     )
 
     recurrence_interval_months: Mapped[int | None] = mapped_column(
