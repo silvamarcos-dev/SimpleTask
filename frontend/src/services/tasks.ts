@@ -36,7 +36,7 @@ export interface UpdateTaskRequest {
 
   recurrence_type?: RecurrenceType;
 
-  recurrence_interval_months?: number | null;
+  recurrence_interval?: number | null;
 }
 
 export async function createTask(

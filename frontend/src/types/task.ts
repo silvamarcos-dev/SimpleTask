@@ -36,7 +36,7 @@ export interface Task {
 
   recurrence_type: RecurrenceType;
 
-  recurrence_interval_months: number | null;
+  recurrence_interval: number | null;
 
   next_recurrence_date: string | null;
 
@@ -73,5 +73,5 @@ export interface CreateTaskRequest {
 
   recurrence_type?: RecurrenceType;
 
-  recurrence_interval_months?: number | null;
+  recurrence_interval?: number | null;
 }

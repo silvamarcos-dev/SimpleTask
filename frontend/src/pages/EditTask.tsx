@@ -6,11 +6,14 @@ import {
   updateTask,
 } from "../services/tasks";
 
-import type { Task } from "../types/task";
+import type {
+  RecurrenceType,
+  Task,
+} from "../types/task";
+
 import type {
   UrgencyLevel,
 } from "../types/taskEnums";
-
 
 function EditTask() {
   const navigate = useNavigate();
@@ -46,6 +49,9 @@ function EditTask() {
   const [isRecurring, setIsRecurring] =
     useState(false);
 
+  const [recurrenceType, setRecurrenceType] =
+    useState<RecurrenceType>("semanal");
+
   const [recurrenceInterval, setRecurrenceInterval] =
     useState("3");
 
@@ -58,6 +64,35 @@ function EditTask() {
   const [error, setError] =
     useState("");
 
+  /* =====================================================
+     UNIDADE DA RECORRÊNCIA
+  ===================================================== */
+
+  function getRecurrenceUnit() {
+    const interval = Number(
+      recurrenceInterval,
+    );
+
+    if (recurrenceType === "diaria") {
+      return interval === 1
+        ? "dia"
+        : "dias";
+    }
+
+    if (recurrenceType === "semanal") {
+      return interval === 1
+        ? "semana"
+        : "semanas";
+    }
+
+    return interval === 1
+      ? "mês"
+      : "meses";
+  }
+
+  /* =====================================================
+     CARREGAR TAREFA
+  ===================================================== */
 
   useEffect(() => {
     async function loadTask() {
@@ -78,13 +113,17 @@ function EditTask() {
 
         setTask(foundTask);
 
-        setTitle(foundTask.title);
+        setTitle(
+          foundTask.title,
+        );
 
         setDescription(
           foundTask.description ?? "",
         );
 
-        setUrgency(foundTask.urgency);
+        setUrgency(
+          foundTask.urgency,
+        );
 
         setScheduledDate(
           foundTask.scheduled_date,
@@ -115,9 +154,16 @@ function EditTask() {
           foundTask.is_recurring,
         );
 
+        setRecurrenceType(
+          foundTask.recurrence_type !==
+            "nenhuma"
+            ? foundTask.recurrence_type
+            : "semanal",
+        );
+
         setRecurrenceInterval(
           String(
-            foundTask.recurrence_interval_months ??
+            foundTask.recurrence_interval ??
               3,
           ),
         );
@@ -133,6 +179,9 @@ function EditTask() {
     loadTask();
   }, [taskId]);
 
+  /* =====================================================
+     SALVAR
+  ===================================================== */
 
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>,
@@ -144,16 +193,56 @@ function EditTask() {
     }
 
     setError("");
+
+    if (!title.trim()) {
+      setError(
+        "Informe um título para a tarefa.",
+      );
+      return;
+    }
+
+    if (!scheduledDate) {
+      setError(
+        "Informe a data da tarefa.",
+      );
+      return;
+    }
+
+    if (isRecurring) {
+      const interval = Number(
+        recurrenceInterval,
+      );
+
+      if (
+        !Number.isInteger(interval) ||
+        interval < 1
+      ) {
+        setError(
+          "O intervalo de recorrência deve ser maior que zero.",
+        );
+        return;
+      }
+
+      if (interval > 120) {
+        setError(
+          "O intervalo de recorrência não pode ser maior que 120.",
+        );
+        return;
+      }
+    }
+
     setSaving(true);
 
     try {
       await updateTask(
         task.id,
         {
-          title: title.trim(),
+          title:
+            title.trim(),
 
           description:
-            description.trim() || null,
+            description.trim() ||
+            null,
 
           urgency,
 
@@ -161,21 +250,30 @@ function EditTask() {
             scheduledDate,
 
           scheduled_time:
-            scheduledTime || null,
+            scheduledTime ||
+            null,
 
           building:
-            building.trim() || null,
+            building.trim() ||
+            null,
 
           block:
-            block.trim() || null,
+            block.trim() ||
+            null,
 
           apartment:
-            apartment.trim() || null,
+            apartment.trim() ||
+            null,
 
           is_recurring:
             isRecurring,
 
-          recurrence_interval_months:
+          recurrence_type:
+            isRecurring
+              ? recurrenceType
+              : "nenhuma",
+
+          recurrence_interval:
             isRecurring
               ? Number(
                   recurrenceInterval,
@@ -185,7 +283,6 @@ function EditTask() {
       );
 
       navigate("/dashboard");
-
     } catch {
       setError(
         "Não foi possível atualizar a tarefa.",
@@ -195,6 +292,9 @@ function EditTask() {
     }
   }
 
+  /* =====================================================
+     LOADING
+  ===================================================== */
 
   if (loading) {
     return (
@@ -206,13 +306,18 @@ function EditTask() {
     );
   }
 
+  /* =====================================================
+     ERROR
+  ===================================================== */
 
   if (error || !task) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f7f7f8] px-4">
         <div className="text-center">
+
           <p className="text-sm font-medium text-red-500">
-            {error || "Tarefa não encontrada."}
+            {error ||
+              "Tarefa não encontrada."}
           </p>
 
           <button
@@ -224,19 +329,27 @@ function EditTask() {
           >
             Voltar para o dashboard
           </button>
+
         </div>
       </div>
     );
   }
 
+  /* =====================================================
+     PAGE
+  ===================================================== */
 
   return (
     <div className="min-h-screen bg-[#f7f7f8] px-4 py-8 text-zinc-900 sm:px-6 lg:px-8">
+
       <div className="mx-auto max-w-3xl">
 
-        {/* HEADER */}
+        {/* =================================================
+            HEADER
+        ================================================= */}
 
         <div className="mb-8">
+
           <button
             type="button"
             onClick={() =>
@@ -254,15 +367,19 @@ function EditTask() {
           <p className="mt-1 text-sm text-zinc-400">
             Atualize as informações da tarefa.
           </p>
+
         </div>
 
-
-        {/* FORM */}
+        {/* =================================================
+            FORM
+        ================================================= */}
 
         <form
           onSubmit={handleSubmit}
           className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8"
         >
+
+          {/* ERROR */}
 
           {error && (
             <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -270,10 +387,12 @@ function EditTask() {
             </div>
           )}
 
-
-          {/* INFORMAÇÕES */}
+          {/* =================================================
+              INFORMAÇÕES
+          ================================================= */}
 
           <div>
+
             <h2 className="text-sm font-semibold text-zinc-950">
               Informações da tarefa
             </h2>
@@ -281,14 +400,15 @@ function EditTask() {
             <p className="mt-1 text-xs text-zinc-400">
               Defina o que precisa ser feito.
             </p>
-          </div>
 
+          </div>
 
           <div className="mt-5 space-y-5">
 
             {/* TITLE */}
 
             <div>
+
               <label className="mb-2 block text-sm font-medium text-zinc-700">
                 Título
               </label>
@@ -305,12 +425,13 @@ function EditTask() {
                 maxLength={200}
                 className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-zinc-300 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
               />
-            </div>
 
+            </div>
 
             {/* DESCRIPTION */}
 
             <div>
+
               <label className="mb-2 block text-sm font-medium text-zinc-700">
                 Descrição
               </label>
@@ -326,12 +447,13 @@ function EditTask() {
                 maxLength={5000}
                 className="w-full resize-none rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-zinc-300 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
               />
-            </div>
 
+            </div>
 
             {/* URGENCY */}
 
             <div>
+
               <label className="mb-2 block text-sm font-medium text-zinc-700">
                 Urgência
               </label>
@@ -341,7 +463,9 @@ function EditTask() {
                 <button
                   type="button"
                   onClick={() =>
-                    setUrgency("baixa")
+                    setUrgency(
+                      "baixa",
+                    )
                   }
                   className={`rounded-xl border px-3 py-3 text-sm font-medium transition ${
                     urgency === "baixa"
@@ -355,7 +479,9 @@ function EditTask() {
                 <button
                   type="button"
                   onClick={() =>
-                    setUrgency("media")
+                    setUrgency(
+                      "media",
+                    )
                   }
                   className={`rounded-xl border px-3 py-3 text-sm font-medium transition ${
                     urgency === "media"
@@ -369,7 +495,9 @@ function EditTask() {
                 <button
                   type="button"
                   onClick={() =>
-                    setUrgency("alta")
+                    setUrgency(
+                      "alta",
+                    )
                   }
                   className={`rounded-xl border px-3 py-3 text-sm font-medium transition ${
                     urgency === "alta"
@@ -381,12 +509,14 @@ function EditTask() {
                 </button>
 
               </div>
+
             </div>
 
           </div>
 
-
-          {/* AGENDAMENTO */}
+          {/* =================================================
+              AGENDAMENTO
+          ================================================= */}
 
           <div className="mt-8 border-t border-zinc-100 pt-8">
 
@@ -400,7 +530,10 @@ function EditTask() {
 
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
 
+              {/* DATE */}
+
               <div>
+
                 <label className="mb-2 block text-sm font-medium text-zinc-700">
                   Data
                 </label>
@@ -416,10 +549,13 @@ function EditTask() {
                   required
                   className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
                 />
+
               </div>
 
+              {/* TIME */}
 
               <div>
+
                 <label className="mb-2 block text-sm font-medium text-zinc-700">
                   Horário
                 </label>
@@ -434,14 +570,16 @@ function EditTask() {
                   }
                   className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
                 />
+
               </div>
 
             </div>
 
           </div>
 
-
-          {/* LOCALIZAÇÃO */}
+          {/* =================================================
+              LOCALIZAÇÃO
+          ================================================= */}
 
           <div className="mt-8 border-t border-zinc-100 pt-8">
 
@@ -455,7 +593,10 @@ function EditTask() {
 
             <div className="mt-5 grid gap-5 sm:grid-cols-3">
 
+              {/* BUILDING */}
+
               <div className="sm:col-span-3">
+
                 <label className="mb-2 block text-sm font-medium text-zinc-700">
                   Edifício
                 </label>
@@ -472,10 +613,13 @@ function EditTask() {
                   maxLength={150}
                   className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-zinc-300 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
                 />
+
               </div>
 
+              {/* BLOCK */}
 
               <div>
+
                 <label className="mb-2 block text-sm font-medium text-zinc-700">
                   Bloco
                 </label>
@@ -492,10 +636,13 @@ function EditTask() {
                   maxLength={50}
                   className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-zinc-300 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
                 />
+
               </div>
 
+              {/* APARTMENT */}
 
               <div>
+
                 <label className="mb-2 block text-sm font-medium text-zinc-700">
                   Apartamento
                 </label>
@@ -512,18 +659,22 @@ function EditTask() {
                   maxLength={50}
                   className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-zinc-300 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
                 />
+
               </div>
 
             </div>
 
           </div>
 
-
-          {/* RECORRÊNCIA */}
+          {/* =================================================
+              RECORRÊNCIA
+          ================================================= */}
 
           <div className="mt-8 border-t border-zinc-100 pt-8">
 
             <div className="flex items-start gap-3">
+
+              {/* CHECKBOX */}
 
               <button
                 type="button"
@@ -532,12 +683,14 @@ function EditTask() {
                     !isRecurring,
                   )
                 }
+                aria-label="Ativar tarefa recorrente"
                 className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
                   isRecurring
                     ? "border-zinc-900 bg-zinc-900 text-white"
                     : "border-zinc-300 bg-white"
                 }`}
               >
+
                 {isRecurring && (
                   <svg
                     width="12"
@@ -550,10 +703,13 @@ function EditTask() {
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
                 )}
+
               </button>
 
+              {/* LABEL */}
 
               <div>
+
                 <button
                   type="button"
                   onClick={() =>
@@ -569,41 +725,111 @@ function EditTask() {
                 <p className="mt-1 text-xs text-zinc-400">
                   Após ser concluída, a tarefa retornará automaticamente quando o período terminar.
                 </p>
+
               </div>
 
             </div>
 
+            {/* OPTIONS */}
 
             {isRecurring && (
-              <div className="mt-5 max-w-xs">
+              <div className="mt-5">
 
-                <label className="mb-2 block text-sm font-medium text-zinc-700">
-                  Repetir a cada
+                <label className="mb-3 block text-sm font-medium text-zinc-700">
+                  Frequência
                 </label>
 
-                <div className="flex items-center gap-3">
+                <div className="grid gap-2 sm:grid-cols-3">
 
-                  <input
-                    type="number"
-                    min="1"
-                    max="120"
-                    value={recurrenceInterval}
-                    onChange={(event) =>
-                      setRecurrenceInterval(
-                        event.target.value,
+                  {/* DAILY */}
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRecurrenceType(
+                        "diaria",
                       )
                     }
-                    required
-                    className="w-24 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
-                  />
+                    className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${
+                      recurrenceType === "diaria"
+                        ? "border-zinc-900 bg-zinc-950 text-white"
+                        : "border-zinc-200 text-zinc-600 hover:border-zinc-300"
+                    }`}
+                  >
+                    Diária
+                  </button>
 
-                  <span className="text-sm text-zinc-500">
-                    {Number(
-                      recurrenceInterval,
-                    ) === 1
-                      ? "mês"
-                      : "meses"}
-                  </span>
+                  {/* WEEKLY */}
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRecurrenceType(
+                        "semanal",
+                      )
+                    }
+                    className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${
+                      recurrenceType === "semanal"
+                        ? "border-zinc-900 bg-zinc-950 text-white"
+                        : "border-zinc-200 text-zinc-600 hover:border-zinc-300"
+                    }`}
+                  >
+                    Semanal
+                  </button>
+
+                  {/* MONTHLY */}
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRecurrenceType(
+                        "mensal",
+                      )
+                    }
+                    className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${
+                      recurrenceType === "mensal"
+                        ? "border-zinc-900 bg-zinc-950 text-white"
+                        : "border-zinc-200 text-zinc-600 hover:border-zinc-300"
+                    }`}
+                  >
+                    Mensal
+                  </button>
+
+                </div>
+
+                {/* INTERVAL */}
+
+                <div className="mt-5 max-w-sm">
+
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">
+                    Repetir a cada
+                  </label>
+
+                  <div className="flex items-center gap-3">
+
+                    <input
+                      type="number"
+                      min="1"
+                      max="120"
+                      value={recurrenceInterval}
+                      onChange={(event) =>
+                        setRecurrenceInterval(
+                          event.target.value,
+                        )
+                      }
+                      required
+                      className="w-24 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
+                    />
+
+                    <span className="text-sm text-zinc-500">
+                      {getRecurrenceUnit()}
+                    </span>
+
+                  </div>
+
+                  <p className="mt-2 text-xs text-zinc-400">
+                    A tarefa será recriada automaticamente após ser concluída.
+                  </p>
 
                 </div>
 
@@ -612,8 +838,9 @@ function EditTask() {
 
           </div>
 
-
-          {/* ACTIONS */}
+          {/* =================================================
+              ACTIONS
+          ================================================= */}
 
           <div className="mt-8 flex flex-col-reverse gap-3 border-t border-zinc-100 pt-6 sm:flex-row sm:justify-end">
 
@@ -641,7 +868,9 @@ function EditTask() {
           </div>
 
         </form>
+
       </div>
+
     </div>
   );
 }

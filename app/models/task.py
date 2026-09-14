@@ -125,7 +125,7 @@ class Task(Base):
         default=RecurrenceType.NONE,
     )
 
-    recurrence_interval_months: Mapped[int | None] = mapped_column(
+    recurrence_interval: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
     )

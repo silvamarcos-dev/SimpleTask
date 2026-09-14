@@ -2,12 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { createTask } from "../services/tasks";
-import type {
-  RecurrenceType,
-} from "../types/task";
-import type {
-  UrgencyLevel,
-} from "../types/taskEnums";
+import type { RecurrenceType } from "../types/task";
+import type { UrgencyLevel } from "../types/taskEnums";
 
 function CreateTask() {
   const navigate = useNavigate();
@@ -48,17 +44,69 @@ function CreateTask() {
   const [error, setError] =
     useState("");
 
+  /* =====================================================
+     RECORRÊNCIA
+  ===================================================== */
+
+  function getRecurrenceUnit() {
+    const interval = Number(recurrenceInterval);
+
+    if (recurrenceType === "diaria") {
+      return interval === 1 ? "dia" : "dias";
+    }
+
+    if (recurrenceType === "semanal") {
+      return interval === 1 ? "semana" : "semanas";
+    }
+
+    return interval === 1 ? "mês" : "meses";
+  }
+
+  /* =====================================================
+     SUBMIT
+  ===================================================== */
+
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
 
     setError("");
+
+    if (!title.trim()) {
+      setError("Informe um título para a tarefa.");
+      return;
+    }
+
+    if (!scheduledDate) {
+      setError("Informe a data da tarefa.");
+      return;
+    }
+
+    if (isRecurring) {
+      const interval = Number(recurrenceInterval);
+
+      if (!Number.isInteger(interval) || interval < 1) {
+        setError(
+          "O intervalo de recorrência deve ser maior que zero.",
+        );
+        return;
+      }
+
+      if (interval > 120) {
+        setError(
+          "O intervalo de recorrência não pode ser maior que 120.",
+        );
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
       await createTask({
-        title,
+        title: title.trim(),
+
         description:
           description.trim() || null,
 
@@ -87,15 +135,13 @@ function CreateTask() {
             ? recurrenceType
             : "nenhuma",
 
-        recurrence_interval_months:
-          isRecurring &&
-          recurrenceType === "mensal"
+        recurrence_interval:
+          isRecurring
             ? Number(recurrenceInterval)
             : null,
       });
 
       navigate("/dashboard");
-
     } catch {
       setError(
         "Não foi possível criar a tarefa.",
@@ -110,7 +156,9 @@ function CreateTask() {
 
       <div className="mx-auto max-w-3xl">
 
-        {/* HEADER */}
+        {/* =================================================
+            HEADER
+        ================================================= */}
 
         <div className="mb-8">
 
@@ -134,14 +182,18 @@ function CreateTask() {
 
         </div>
 
-        {/* FORM */}
+        {/* =================================================
+            FORM
+        ================================================= */}
 
         <form
           onSubmit={handleSubmit}
           className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8"
         >
 
-          {/* ERROR */}
+          {/* =================================================
+              ERROR
+          ================================================= */}
 
           {error && (
             <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -149,7 +201,9 @@ function CreateTask() {
             </div>
           )}
 
-          {/* BASIC INFORMATION */}
+          {/* =================================================
+              BASIC INFORMATION
+          ================================================= */}
 
           <div>
 
@@ -266,7 +320,9 @@ function CreateTask() {
 
           </div>
 
-          {/* DATE */}
+          {/* =================================================
+              DATE
+          ================================================= */}
 
           <div className="mt-8 border-t border-zinc-100 pt-8">
 
@@ -279,6 +335,8 @@ function CreateTask() {
             </p>
 
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
+
+              {/* DATE */}
 
               <div>
 
@@ -299,6 +357,8 @@ function CreateTask() {
                 />
 
               </div>
+
+              {/* TIME */}
 
               <div>
 
@@ -323,7 +383,9 @@ function CreateTask() {
 
           </div>
 
-          {/* LOCATION */}
+          {/* =================================================
+              LOCATION
+          ================================================= */}
 
           <div className="mt-8 border-t border-zinc-100 pt-8">
 
@@ -353,7 +415,7 @@ function CreateTask() {
                       event.target.value,
                     )
                   }
-                  placeholder="Ex.: Royal Palace 708"
+                  placeholder="Ex.: Royal Palace"
                   maxLength={150}
                   className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-zinc-300 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
                 />
@@ -410,11 +472,15 @@ function CreateTask() {
 
           </div>
 
-          {/* RECURRENCE */}
+          {/* =================================================
+              RECURRENCE
+          ================================================= */}
 
           <div className="mt-8 border-t border-zinc-100 pt-8">
 
             <div className="flex items-start gap-3">
+
+              {/* CHECKBOX */}
 
               <button
                 type="button"
@@ -446,6 +512,8 @@ function CreateTask() {
 
               </button>
 
+              {/* LABEL */}
+
               <div>
 
                 <button
@@ -468,6 +536,8 @@ function CreateTask() {
 
             </div>
 
+            {/* RECURRENCE OPTIONS */}
+
             {isRecurring && (
               <div className="mt-5">
 
@@ -477,10 +547,14 @@ function CreateTask() {
 
                 <div className="grid gap-2 sm:grid-cols-3">
 
+                  {/* DAILY */}
+
                   <button
                     type="button"
                     onClick={() =>
-                      setRecurrenceType("diaria")
+                      setRecurrenceType(
+                        "diaria",
+                      )
                     }
                     className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${
                       recurrenceType === "diaria"
@@ -491,10 +565,14 @@ function CreateTask() {
                     Diária
                   </button>
 
+                  {/* WEEKLY */}
+
                   <button
                     type="button"
                     onClick={() =>
-                      setRecurrenceType("semanal")
+                      setRecurrenceType(
+                        "semanal",
+                      )
                     }
                     className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${
                       recurrenceType === "semanal"
@@ -505,10 +583,14 @@ function CreateTask() {
                     Semanal
                   </button>
 
+                  {/* MONTHLY */}
+
                   <button
                     type="button"
                     onClick={() =>
-                      setRecurrenceType("mensal")
+                      setRecurrenceType(
+                        "mensal",
+                      )
                     }
                     className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${
                       recurrenceType === "mensal"
@@ -521,48 +603,50 @@ function CreateTask() {
 
                 </div>
 
-                {recurrenceType === "mensal" && (
-                  <div className="mt-5 max-w-xs">
+                {/* INTERVAL */}
 
-                    <label className="mb-2 block text-sm font-medium text-zinc-700">
-                      Repetir a cada
-                    </label>
+                <div className="mt-5 max-w-sm">
 
-                    <div className="flex items-center gap-3">
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">
+                    Repetir a cada
+                  </label>
 
-                      <input
-                        type="number"
-                        min="1"
-                        max="120"
-                        value={recurrenceInterval}
-                        onChange={(event) =>
-                          setRecurrenceInterval(
-                            event.target.value,
-                          )
-                        }
-                        required
-                        className="w-24 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
-                      />
+                  <div className="flex items-center gap-3">
 
-                      <span className="text-sm text-zinc-500">
-                        {Number(
-                          recurrenceInterval,
-                        ) === 1
-                          ? "mês"
-                          : "meses"}
-                      </span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="120"
+                      value={recurrenceInterval}
+                      onChange={(event) =>
+                        setRecurrenceInterval(
+                          event.target.value,
+                        )
+                      }
+                      required
+                      className="w-24 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
+                    />
 
-                    </div>
+                    <span className="text-sm text-zinc-500">
+                      {getRecurrenceUnit()}
+                    </span>
 
                   </div>
-                )}
+
+                  <p className="mt-2 text-xs text-zinc-400">
+                    A tarefa será recriada automaticamente após ser concluída.
+                  </p>
+
+                </div>
 
               </div>
             )}
 
           </div>
 
-          {/* ACTIONS */}
+          {/* =================================================
+              ACTIONS
+          ================================================= */}
 
           <div className="mt-8 flex flex-col-reverse gap-3 border-t border-zinc-100 pt-6 sm:flex-row sm:justify-end">
 

@@ -53,7 +53,7 @@ class TaskBase(BaseModel):
 
     recurrence_type: RecurrenceType = RecurrenceType.NONE
 
-    recurrence_interval_months: int | None = Field(
+    recurrence_interval: int | None = Field(
         default=None,
         ge=1,
         le=120,
@@ -67,11 +67,12 @@ class TaskBase(BaseModel):
 
         if not self.is_recurring:
             self.recurrence_type = RecurrenceType.NONE
-            self.recurrence_interval_months = None
+            self.recurrence_interval = None
+
             return self
 
         # =================================================
-        # RECORRENTE
+        # RECORRENTE SEM TIPO
         # =================================================
 
         if self.recurrence_type == RecurrenceType.NONE:
@@ -81,22 +82,24 @@ class TaskBase(BaseModel):
             )
 
         # =================================================
-        # RECORRÊNCIA MENSAL
+        # RECORRENTE SEM INTERVALO
         # =================================================
 
-        if self.recurrence_type == RecurrenceType.MONTHLY:
-            if self.recurrence_interval_months is None:
-                raise ValueError(
-                    "Uma tarefa mensal precisa informar "
-                    "o intervalo em meses."
-                )
+        if self.recurrence_interval is None:
+            raise ValueError(
+                "Uma tarefa recorrente precisa informar "
+                "o intervalo."
+            )
 
         # =================================================
-        # DIÁRIA / SEMANAL
+        # INTERVALO INVÁLIDO
         # =================================================
 
-        else:
-            self.recurrence_interval_months = None
+        if self.recurrence_interval < 1:
+            raise ValueError(
+                "O intervalo de recorrência deve ser "
+                "maior que zero."
+            )
 
         return self
 
@@ -152,7 +155,7 @@ class TaskUpdate(BaseModel):
 
     recurrence_type: RecurrenceType | None = None
 
-    recurrence_interval_months: int | None = Field(
+    recurrence_interval: int | None = Field(
         default=None,
         ge=1,
         le=120,
