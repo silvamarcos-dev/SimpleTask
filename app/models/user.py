@@ -1,19 +1,28 @@
 from datetime import datetime
+
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String, func
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.database import Base
 
 
 if TYPE_CHECKING:
+
+    from app.models.apartment import Apartment
     from app.models.maintenance import Maintenance
     from app.models.task import Task
 
 
 class User(Base):
+
     __tablename__ = "users"
+
+    # =====================================================
+    # IDENTIFICAÇÃO
+    # =====================================================
 
     id: Mapped[int] = mapped_column(
         primary_key=True,
@@ -37,6 +46,29 @@ class User(Base):
         nullable=False,
     )
 
+    # =====================================================
+    # RELACIONAMENTOS
+    # =====================================================
+
+    tasks: Mapped[list["Task"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    maintenances: Mapped[list["Maintenance"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    apartments: Mapped[list["Apartment"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    # =====================================================
+    # TIMESTAMPS
+    # =====================================================
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -48,14 +80,4 @@ class User(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
-    )
-
-    tasks: Mapped[list["Task"]] = relationship(
-        back_populates="user",
-        cascade="all, delete-orphan",
-    )
-
-    maintenances: Mapped[list["Maintenance"]] = relationship(
-        back_populates="user",
-        cascade="all, delete-orphan",
     )

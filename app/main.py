@@ -13,7 +13,7 @@ from app.api import (
 )
 from app.core.config import get_settings
 from app.jobs.scheduler import start_scheduler, stop_scheduler
-
+from app.api import apartments
 
 settings = get_settings()
 
@@ -54,6 +54,7 @@ app.include_router(dashboard.router)
 app.include_router(calendar.router)
 app.include_router(notifications.router)
 app.include_router(maintenance.router)
+app.include_router(apartments.router)
 
 @app.get(
     "/",

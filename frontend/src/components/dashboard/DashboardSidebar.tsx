@@ -7,6 +7,7 @@ import {
 
 import { removeToken } from "../../lib/authStorage";
 
+
 function DashboardSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,6 +27,12 @@ function DashboardSidebar() {
   const isCalendar =
     location.pathname === "/calendar";
 
+  const isApartments =
+    location.pathname === "/apartments" ||
+    location.pathname.startsWith(
+      "/apartments/",
+    );
+
   const isNewTask =
     location.pathname === "/tasks/new";
 
@@ -35,13 +42,12 @@ function DashboardSidebar() {
   const [mobileOpen, setMobileOpen] =
     useState(false);
 
+
   /*
    * Controla o scroll da página enquanto
    * o menu mobile estiver aberto.
-   *
-   * Este efeito é válido porque estamos
-   * sincronizando com uma API externa do navegador.
    */
+
   useEffect(() => {
     if (!mobileOpen) {
       document.body.style.overflow = "";
@@ -55,24 +61,29 @@ function DashboardSidebar() {
     };
   }, [mobileOpen]);
 
+
   function handleDashboardClick() {
     setDashboardExpanded(true);
     navigate("/dashboard");
   }
+
 
   function handleLogout() {
     removeToken();
     navigate("/login");
   }
 
+
   function closeMobileMenu() {
     setMobileOpen(false);
   }
+
 
   function navigateMobile(path: string) {
     setMobileOpen(false);
     navigate(path);
   }
+
 
   return (
     <>
@@ -81,9 +92,12 @@ function DashboardSidebar() {
       ===================================================== */}
 
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-zinc-200 bg-white px-4 lg:hidden">
+
         <button
           type="button"
-          onClick={() => setMobileOpen(true)}
+          onClick={() =>
+            setMobileOpen(true)
+          }
           aria-label="Abrir menu"
           className="flex h-10 w-10 items-center justify-center rounded-xl text-zinc-700 transition hover:bg-zinc-100"
         >
@@ -102,6 +116,7 @@ function DashboardSidebar() {
           </svg>
         </button>
 
+
         <button
           type="button"
           onClick={() =>
@@ -112,8 +127,11 @@ function DashboardSidebar() {
           Simple Task
         </button>
 
+
         <div className="h-10 w-10" />
+
       </header>
+
 
       {/* =====================================================
           MOBILE OVERLAY
@@ -128,6 +146,7 @@ function DashboardSidebar() {
         />
       )}
 
+
       {/* =====================================================
           MOBILE SIDEBAR
       ===================================================== */}
@@ -139,18 +158,23 @@ function DashboardSidebar() {
             : "-translate-x-full"
         }`}
       >
+
         {/* MOBILE SIDEBAR HEADER */}
 
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-zinc-200 px-5">
+
           <button
             type="button"
             onClick={() =>
-              navigateMobile("/dashboard")
+              navigateMobile(
+                "/dashboard",
+              )
             }
             className="text-lg font-bold tracking-tight text-zinc-950"
           >
             Simple Task
           </button>
+
 
           <button
             type="button"
@@ -171,14 +195,20 @@ function DashboardSidebar() {
               <path d="M18 6L6 18" />
             </svg>
           </button>
+
         </div>
+
 
         {/* MOBILE NAVIGATION */}
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-          {/* Dashboard */}
+
+          {/* =================================================
+              DASHBOARD
+          ================================================= */}
 
           <div>
+
             <div
               className={`flex items-center rounded-lg transition ${
                 isDashboard
@@ -186,6 +216,7 @@ function DashboardSidebar() {
                   : "text-zinc-600"
               }`}
             >
+
               <button
                 type="button"
                 onClick={() =>
@@ -195,6 +226,7 @@ function DashboardSidebar() {
                 }
                 className="flex flex-1 items-center gap-3 px-3 py-3 text-left text-sm font-medium"
               >
+
                 <svg
                   width="18"
                   height="18"
@@ -237,7 +269,9 @@ function DashboardSidebar() {
                 </svg>
 
                 Dashboard
+
               </button>
+
 
               <button
                 type="button"
@@ -254,6 +288,7 @@ function DashboardSidebar() {
                     : "Expandir Dashboard"
                 }
               >
+
                 <svg
                   width="16"
                   height="16"
@@ -269,13 +304,17 @@ function DashboardSidebar() {
                 >
                   <path d="m6 9 6 6 6-6" />
                 </svg>
+
               </button>
+
             </div>
 
-            {/* Dashboard submenu */}
+
+            {/* DASHBOARD SUBMENU */}
 
             {dashboardExpanded && (
               <div className="ml-6 mt-1 space-y-1 border-l border-zinc-200 pl-3">
+
                 <button
                   type="button"
                   onClick={() =>
@@ -289,6 +328,7 @@ function DashboardSidebar() {
                       : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-950"
                   }`}
                 >
+
                   <svg
                     width="15"
                     height="15"
@@ -302,7 +342,9 @@ function DashboardSidebar() {
                   </svg>
 
                   Visão geral
+
                 </button>
+
 
                 <button
                   type="button"
@@ -317,6 +359,7 @@ function DashboardSidebar() {
                       : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-950"
                   }`}
                 >
+
                   <svg
                     width="15"
                     height="15"
@@ -325,17 +368,23 @@ function DashboardSidebar() {
                     stroke="currentColor"
                     strokeWidth="1.8"
                   >
-                    <path d="M14.7 6.3a4 4 0 0 0-5.1 5.1L4 17v3h3l5.6-5.6a4 4 0 0 0 5.1-5.1l-2.2 2.2-2.8-.8-.8-2.8z" />
+                    <path d="M14.7 6.3a4 4 0 0 0-5.1 5.1L4 17v3h3l5.6-5.6a4 4 0 0 0-5.1-5.1l-2.2 2.2-2.8-.8-.8-2.8z" />
                     <path d="m16 8 2-2" />
                   </svg>
 
                   Manutenções
+
                 </button>
+
               </div>
             )}
+
           </div>
 
-          {/* Calendário */}
+
+          {/* =================================================
+              CALENDÁRIO
+          ================================================= */}
 
           <button
             type="button"
@@ -350,6 +399,7 @@ function DashboardSidebar() {
                 : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
             }`}
           >
+
             <svg
               width="18"
               height="18"
@@ -372,9 +422,53 @@ function DashboardSidebar() {
             </svg>
 
             Calendário
+
           </button>
 
-          {/* Nova tarefa */}
+
+          {/* =================================================
+              APARTAMENTOS
+          ================================================= */}
+
+          <button
+            type="button"
+            onClick={() =>
+              navigateMobile(
+                "/apartments",
+              )
+            }
+            className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium transition ${
+              isApartments
+                ? "bg-zinc-100 text-zinc-950"
+                : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
+            }`}
+          >
+
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              <path d="M3 21h18" />
+              <path d="M5 21V6l7-3 7 3v15" />
+              <path d="M9 21v-5h6v5" />
+              <path d="M9 9h1" />
+              <path d="M14 9h1" />
+              <path d="M9 12h1" />
+              <path d="M14 12h1" />
+            </svg>
+
+            Apartamentos
+
+          </button>
+
+
+          {/* =================================================
+              NOVA TAREFA
+          ================================================= */}
 
           <button
             type="button"
@@ -389,6 +483,7 @@ function DashboardSidebar() {
                 : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
             }`}
           >
+
             <svg
               width="18"
               height="18"
@@ -402,17 +497,24 @@ function DashboardSidebar() {
             </svg>
 
             Nova tarefa
+
           </button>
+
         </nav>
 
-        {/* MOBILE LOGOUT */}
+
+        {/* =================================================
+            MOBILE LOGOUT
+        ================================================= */}
 
         <div className="shrink-0 border-t border-zinc-200 p-4">
+
           <button
             type="button"
             onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-950"
           >
+
             <svg
               width="18"
               height="18"
@@ -427,18 +529,24 @@ function DashboardSidebar() {
             </svg>
 
             Sair
+
           </button>
+
         </div>
+
       </aside>
+
 
       {/* =====================================================
           DESKTOP SIDEBAR
       ===================================================== */}
 
       <aside className="hidden min-h-screen w-64 shrink-0 border-r border-zinc-200 bg-white lg:flex lg:flex-col">
+
         {/* HEADER */}
 
         <div className="flex h-16 items-center border-b border-zinc-200 px-6">
+
           <button
             type="button"
             onClick={() =>
@@ -448,14 +556,20 @@ function DashboardSidebar() {
           >
             Simple Task
           </button>
+
         </div>
+
 
         {/* NAVIGATION */}
 
         <nav className="flex-1 space-y-1 p-4">
-          {/* Dashboard */}
+
+          {/* =================================================
+              DASHBOARD
+          ================================================= */}
 
           <div>
+
             <div
               className={`flex items-center rounded-lg transition ${
                 isDashboard
@@ -463,6 +577,7 @@ function DashboardSidebar() {
                   : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
               }`}
             >
+
               <button
                 type="button"
                 onClick={
@@ -470,6 +585,7 @@ function DashboardSidebar() {
                 }
                 className="flex flex-1 items-center gap-3 px-3 py-2.5 text-left text-sm font-medium"
               >
+
                 <svg
                   width="18"
                   height="18"
@@ -512,7 +628,9 @@ function DashboardSidebar() {
                 </svg>
 
                 Dashboard
+
               </button>
+
 
               <button
                 type="button"
@@ -529,6 +647,7 @@ function DashboardSidebar() {
                     : "Expandir Dashboard"
                 }
               >
+
                 <svg
                   width="16"
                   height="16"
@@ -544,13 +663,17 @@ function DashboardSidebar() {
                 >
                   <path d="m6 9 6 6 6-6" />
                 </svg>
+
               </button>
+
             </div>
 
-            {/* Dashboard submenu */}
+
+            {/* DASHBOARD SUBMENU */}
 
             {dashboardExpanded && (
               <div className="ml-6 mt-1 space-y-1 border-l border-zinc-200 pl-3">
+
                 <button
                   type="button"
                   onClick={() =>
@@ -564,6 +687,7 @@ function DashboardSidebar() {
                       : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-950"
                   }`}
                 >
+
                   <svg
                     width="15"
                     height="15"
@@ -577,7 +701,9 @@ function DashboardSidebar() {
                   </svg>
 
                   Visão geral
+
                 </button>
+
 
                 <button
                   type="button"
@@ -592,6 +718,7 @@ function DashboardSidebar() {
                       : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-950"
                   }`}
                 >
+
                   <svg
                     width="15"
                     height="15"
@@ -605,12 +732,18 @@ function DashboardSidebar() {
                   </svg>
 
                   Manutenções
+
                 </button>
+
               </div>
             )}
+
           </div>
 
-          {/* Calendário */}
+
+          {/* =================================================
+              CALENDÁRIO
+          ================================================= */}
 
           <button
             type="button"
@@ -623,6 +756,7 @@ function DashboardSidebar() {
                 : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
             }`}
           >
+
             <svg
               width="18"
               height="18"
@@ -645,9 +779,51 @@ function DashboardSidebar() {
             </svg>
 
             Calendário
+
           </button>
 
-          {/* Nova tarefa */}
+
+          {/* =================================================
+              APARTAMENTOS
+          ================================================= */}
+
+          <button
+            type="button"
+            onClick={() =>
+              navigate("/apartments")
+            }
+            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${
+              isApartments
+                ? "bg-zinc-100 text-zinc-950"
+                : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
+            }`}
+          >
+
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              <path d="M3 21h18" />
+              <path d="M5 21V6l7-3 7 3v15" />
+              <path d="M9 21v-5h6v5" />
+              <path d="M9 9h1" />
+              <path d="M14 9h1" />
+              <path d="M9 12h1" />
+              <path d="M14 12h1" />
+            </svg>
+
+            Apartamentos
+
+          </button>
+
+
+          {/* =================================================
+              NOVA TAREFA
+          ================================================= */}
 
           <button
             type="button"
@@ -660,6 +836,7 @@ function DashboardSidebar() {
                 : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
             }`}
           >
+
             <svg
               width="18"
               height="18"
@@ -673,17 +850,24 @@ function DashboardSidebar() {
             </svg>
 
             Nova tarefa
+
           </button>
+
         </nav>
 
-        {/* LOGOUT */}
+
+        {/* =================================================
+            LOGOUT
+        ================================================= */}
 
         <div className="border-t border-zinc-200 p-4">
+
           <button
             type="button"
             onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-950"
           >
+
             <svg
               width="18"
               height="18"
@@ -698,8 +882,11 @@ function DashboardSidebar() {
             </svg>
 
             Sair
+
           </button>
+
         </div>
+
       </aside>
     </>
   );

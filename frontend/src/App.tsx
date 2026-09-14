@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
+import Apartments from "./pages/Apartment";
+
 import Calendar from "./pages/Calendar";
 
 import CreateMaintenance from "./pages/CreateMaintenance";
@@ -12,19 +14,35 @@ import Dashboard from "./pages/Dashboard";
 
 import EditMaintenance from "./pages/EditMaintenance";
 
+import CreateApartment from "./pages/CreateApartment";
+import EditApartment from "./pages/EditApartment";
+
 import EditTask from "./pages/EditTask";
 
 import Login from "./pages/Login";
 
 import MaintenancePage from "./pages/Maintenance";
 
+
 function App() {
+
   return (
+
     <Routes>
+
+      {/* =====================================================
+          LOGIN
+      ===================================================== */}
+
       <Route
         path="/login"
         element={<Login />}
       />
+
+
+      {/* =====================================================
+          DASHBOARD
+      ===================================================== */}
 
       <Route
         path="/dashboard"
@@ -34,6 +52,11 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+
+      {/* =====================================================
+          MANUTENÇÕES
+      ===================================================== */}
 
       <Route
         path="/dashboard/maintenance"
@@ -62,6 +85,11 @@ function App() {
         }
       />
 
+
+      {/* =====================================================
+          TAREFAS
+      ===================================================== */}
+
       <Route
         path="/tasks/new"
         element={
@@ -80,6 +108,11 @@ function App() {
         }
       />
 
+
+      {/* =====================================================
+          CALENDÁRIO
+      ===================================================== */}
+
       <Route
         path="/calendar"
         element={
@@ -88,6 +121,41 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+
+      {/* =====================================================
+          APARTAMENTOS
+      ===================================================== */}
+
+      <Route
+        path="/apartments"
+        element={
+          <ProtectedRoute>
+            <Apartments />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+  path="/apartments/new"
+  element={
+    <ProtectedRoute>
+      <CreateApartment />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/apartments/:id/edit"
+  element={
+    <ProtectedRoute>
+      <EditApartment />
+    </ProtectedRoute>
+  }
+/>
+
+      {/* =====================================================
+          FALLBACK
+      ===================================================== */}
 
       <Route
         path="*"
@@ -98,7 +166,9 @@ function App() {
           />
         }
       />
+
     </Routes>
+
   );
 }
 
