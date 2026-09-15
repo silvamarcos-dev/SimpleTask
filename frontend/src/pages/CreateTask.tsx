@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { createTask } from "../services/tasks";
@@ -10,39 +10,77 @@ function CreateTask() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-
-  const [urgency, setUrgency] =
-    useState<UrgencyLevel>("media");
-
-  const [scheduledDate, setScheduledDate] =
-    useState("");
-
-  const [scheduledTime, setScheduledTime] =
-    useState("");
-
-  const [building, setBuilding] =
-    useState("");
-
-  const [block, setBlock] =
-    useState("");
-
-  const [apartment, setApartment] =
-    useState("");
-
-  const [isRecurring, setIsRecurring] =
-    useState(false);
+  const [urgency, setUrgency] = useState<UrgencyLevel>("media");
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledTime, setScheduledTime] = useState("");
+  const [building, setBuilding] = useState("");
+  const [block, setBlock] = useState("");
+  const [apartment, setApartment] = useState("");
+  const [isRecurring, setIsRecurring] = useState(false);
 
   const [recurrenceType, setRecurrenceType] =
     useState<RecurrenceType>("semanal");
 
-  const [recurrenceInterval, setRecurrenceInterval] =
-    useState("3");
+  const [recurrenceInterval, setRecurrenceInterval] = useState("3");
 
-  const [loading, setLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const [error, setError] =
-    useState("");
+  /* =====================================================
+     FECHAR
+  ===================================================== */
+
+  function handleClose() {
+    if (loading) {
+      return;
+    }
+
+    const hasContent =
+      title.trim() !== "" ||
+      description.trim() !== "" ||
+      scheduledDate !== "" ||
+      building.trim() !== "";
+
+    if (hasContent) {
+      const confirmed = window.confirm(
+        "As informações preenchidas serão perdidas. Deseja sair?",
+      );
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate("/dashboard");
+  }
+
+  /* =====================================================
+     ESC + TRAVA DE SCROLL
+  ===================================================== */
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        handleClose();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  });
 
   /* =====================================================
      RECORRÊNCIA
@@ -66,9 +104,7 @@ function CreateTask() {
      SUBMIT
   ===================================================== */
 
-  async function handleSubmit(
-    event: React.FormEvent<HTMLFormElement>,
-  ) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setError("");
@@ -87,16 +123,12 @@ function CreateTask() {
       const interval = Number(recurrenceInterval);
 
       if (!Number.isInteger(interval) || interval < 1) {
-        setError(
-          "O intervalo de recorrência deve ser maior que zero.",
-        );
+        setError("O intervalo de recorrência deve ser maior que zero.");
         return;
       }
 
       if (interval > 120) {
-        setError(
-          "O intervalo de recorrência não pode ser maior que 120.",
-        );
+        setError("O intervalo de recorrência não pode ser maior que 120.");
         return;
       }
     }
@@ -106,397 +138,312 @@ function CreateTask() {
     try {
       await createTask({
         title: title.trim(),
-
-        description:
-          description.trim() || null,
-
+        description: description.trim() || null,
         urgency,
-
-        scheduled_date:
-          scheduledDate,
-
-        scheduled_time:
-          scheduledTime || null,
-
-        building:
-          building.trim() || null,
-
-        block:
-          block.trim() || null,
-
-        apartment:
-          apartment.trim() || null,
-
-        is_recurring:
-          isRecurring,
-
-        recurrence_type:
-          isRecurring
-            ? recurrenceType
-            : "nenhuma",
-
-        recurrence_interval:
-          isRecurring
-            ? Number(recurrenceInterval)
-            : null,
+        scheduled_date: scheduledDate,
+        scheduled_time: scheduledTime || null,
+        building: building.trim() || null,
+        block: block.trim() || null,
+        apartment: apartment.trim() || null,
+        is_recurring: isRecurring,
+        recurrence_type: isRecurring ? recurrenceType : "nenhuma",
+        recurrence_interval: isRecurring ? Number(recurrenceInterval) : null,
       });
 
-      navigate("/dashboard");
+      navigate("/tasks");
     } catch {
-      setError(
-        "Não foi possível criar a tarefa.",
-      );
+      setError("Não foi possível criar a tarefa.");
     } finally {
       setLoading(false);
     }
   }
 
+  /* =====================================================
+     CLASSES COMPARTILHADAS
+  ===================================================== */
+
+  const fieldClass =
+    "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-300 hover:border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-900/10";
+
+  const labelClass = "mb-2 block text-sm font-medium text-slate-600";
+
+  const sectionTitleClass =
+    "text-[15px] font-semibold tracking-[-0.01em] text-slate-900";
+
+  const urgencyOptions: {
+    value: UrgencyLevel;
+    label: string;
+    active: string;
+  }[] = [
+    {
+      value: "baixa",
+      label: "Baixa",
+      active: "border-blue-400 bg-blue-50 text-blue-700",
+    },
+    {
+      value: "media",
+      label: "Média",
+      active: "border-amber-400 bg-amber-50 text-amber-700",
+    },
+    {
+      value: "alta",
+      label: "Alta",
+      active: "border-red-400 bg-red-50 text-red-700",
+    },
+  ];
+
+  const recurrenceOptions: { value: RecurrenceType; label: string }[] = [
+    { value: "diaria", label: "Diária" },
+    { value: "semanal", label: "Semanal" },
+    { value: "mensal", label: "Mensal" },
+  ];
+
+  /* =====================================================
+     UI
+  ===================================================== */
+
   return (
-    <div className="min-h-screen bg-[#f7f7f8] px-4 py-8 text-zinc-900 sm:px-6 lg:px-8">
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
+      {/* BACKDROP */}
 
-      <div className="mx-auto max-w-3xl">
+      <button
+        type="button"
+        aria-label="Fechar"
+        onClick={handleClose}
+        className="absolute inset-0 bg-slate-900/40 backdrop-blur-[3px]"
+      />
 
-        {/* =================================================
-            HEADER
-        ================================================= */}
+      {/* MODAL */}
 
-        <div className="mb-8">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-task-title"
+        className="relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[28px] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.28)] sm:max-h-[88vh] sm:rounded-[24px]"
+      >
+        {/* HEADER */}
+
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-6 py-5 sm:px-8">
+          <div>
+            <h1
+              id="create-task-title"
+              className="text-xl font-semibold tracking-[-0.02em] text-slate-900"
+            >
+              Nova tarefa
+            </h1>
+
+            <p className="mt-1 text-sm text-slate-400">
+              Defina o que precisa ser feito e quando.
+            </p>
+          </div>
 
           <button
             type="button"
-            onClick={() =>
-              navigate("/dashboard")
-            }
-            className="mb-4 text-sm font-medium text-zinc-500 transition hover:text-zinc-900"
+            onClick={handleClose}
+            aria-label="Fechar"
+            className="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
           >
-            ← Voltar
+            <svg
+              width="19"
+              height="19"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.9"
+              strokeLinecap="round"
+            >
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
           </button>
-
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-950">
-            Nova tarefa
-          </h1>
-
-          <p className="mt-1 text-sm text-zinc-400">
-            Crie uma nova tarefa para organizar seu dia.
-          </p>
-
         </div>
 
-        {/* =================================================
-            FORM
-        ================================================= */}
+        {/* FORM */}
 
         <form
+          id="create-task-form"
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8"
+          className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8"
         >
-
-          {/* =================================================
-              ERROR
-          ================================================= */}
+          {/* ERROR */}
 
           {error && (
-            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            <div className="mb-6 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
               {error}
             </div>
           )}
 
-          {/* =================================================
-              BASIC INFORMATION
-          ================================================= */}
+          {/* INFORMAÇÕES */}
 
-          <div>
+          <section>
+            <h2 className={sectionTitleClass}>Informações da tarefa</h2>
 
-            <h2 className="text-sm font-semibold text-zinc-950">
-              Informações da tarefa
-            </h2>
+            <div className="mt-4 space-y-5">
+              <div>
+                <label className={labelClass} htmlFor="task-title">
+                  Título
+                </label>
 
-            <p className="mt-1 text-xs text-zinc-400">
-              Defina o que precisa ser feito.
-            </p>
-
-          </div>
-
-          <div className="mt-5 space-y-5">
-
-            {/* TITLE */}
-
-            <div>
-
-              <label className="mb-2 block text-sm font-medium text-zinc-700">
-                Título
-              </label>
-
-              <input
-                type="text"
-                value={title}
-                onChange={(event) =>
-                  setTitle(event.target.value)
-                }
-                placeholder="Ex.: Trocar pilhas"
-                required
-                maxLength={200}
-                className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-zinc-300 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
-              />
-
-            </div>
-
-            {/* DESCRIPTION */}
-
-            <div>
-
-              <label className="mb-2 block text-sm font-medium text-zinc-700">
-                Descrição
-              </label>
-
-              <textarea
-                value={description}
-                onChange={(event) =>
-                  setDescription(event.target.value)
-                }
-                placeholder="Adicione detalhes da tarefa..."
-                rows={4}
-                maxLength={5000}
-                className="w-full resize-none rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-zinc-300 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
-              />
-
-            </div>
-
-            {/* URGENCY */}
-
-            <div>
-
-              <label className="mb-2 block text-sm font-medium text-zinc-700">
-                Urgência
-              </label>
-
-              <div className="grid grid-cols-3 gap-2">
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setUrgency("baixa")
-                  }
-                  className={`rounded-xl border px-3 py-3 text-sm font-medium transition ${
-                    urgency === "baixa"
-                      ? "border-blue-500 bg-blue-50 text-blue-700"
-                      : "border-zinc-200 text-zinc-500 hover:border-zinc-300"
-                  }`}
-                >
-                  Baixa
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setUrgency("media")
-                  }
-                  className={`rounded-xl border px-3 py-3 text-sm font-medium transition ${
-                    urgency === "media"
-                      ? "border-amber-400 bg-amber-50 text-amber-700"
-                      : "border-zinc-200 text-zinc-500 hover:border-zinc-300"
-                  }`}
-                >
-                  Média
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setUrgency("alta")
-                  }
-                  className={`rounded-xl border px-3 py-3 text-sm font-medium transition ${
-                    urgency === "alta"
-                      ? "border-red-500 bg-red-50 text-red-700"
-                      : "border-zinc-200 text-zinc-500 hover:border-zinc-300"
-                  }`}
-                >
-                  Alta
-                </button>
-
+                <input
+                  id="task-title"
+                  type="text"
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  placeholder="Ex.: Trocar as lâmpadas do corredor"
+                  required
+                  maxLength={200}
+                  className={fieldClass}
+                />
               </div>
 
-            </div>
+              <div>
+                <label className={labelClass} htmlFor="task-description">
+                  Descrição
+                </label>
 
-          </div>
-
-          {/* =================================================
-              DATE
-          ================================================= */}
-
-          <div className="mt-8 border-t border-zinc-100 pt-8">
-
-            <h2 className="text-sm font-semibold text-zinc-950">
-              Agendamento
-            </h2>
-
-            <p className="mt-1 text-xs text-zinc-400">
-              Quando essa tarefa deverá ser realizada?
-            </p>
-
-            <div className="mt-5 grid gap-5 sm:grid-cols-2">
-
-              {/* DATE */}
+                <textarea
+                  id="task-description"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder="Adicione detalhes que ajudem na execução..."
+                  rows={4}
+                  maxLength={5000}
+                  className={`${fieldClass} resize-none`}
+                />
+              </div>
 
               <div>
+                <span className={labelClass}>Urgência</span>
 
-                <label className="mb-2 block text-sm font-medium text-zinc-700">
+                <div className="grid grid-cols-3 gap-2">
+                  {urgencyOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setUrgency(option.value)}
+                      aria-pressed={urgency === option.value}
+                      className={`rounded-xl border px-3 py-3 text-sm font-medium transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+                        urgency === option.value
+                          ? option.active
+                          : "border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* AGENDAMENTO */}
+
+          <section className="mt-7 border-t border-slate-100 pt-7">
+            <h2 className={sectionTitleClass}>Agendamento</h2>
+
+            <div className="mt-4 grid gap-5 sm:grid-cols-2">
+              <div>
+                <label className={labelClass} htmlFor="task-date">
                   Data
                 </label>
 
                 <input
+                  id="task-date"
                   type="date"
                   value={scheduledDate}
-                  onChange={(event) =>
-                    setScheduledDate(
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => setScheduledDate(event.target.value)}
                   required
-                  className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
+                  className={fieldClass}
                 />
-
               </div>
 
-              {/* TIME */}
-
               <div>
-
-                <label className="mb-2 block text-sm font-medium text-zinc-700">
+                <label className={labelClass} htmlFor="task-time">
                   Horário
                 </label>
 
                 <input
+                  id="task-time"
                   type="time"
                   value={scheduledTime}
-                  onChange={(event) =>
-                    setScheduledTime(
-                      event.target.value,
-                    )
-                  }
-                  className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
+                  onChange={(event) => setScheduledTime(event.target.value)}
+                  className={fieldClass}
                 />
-
               </div>
-
             </div>
+          </section>
 
-          </div>
+          {/* LOCALIZAÇÃO */}
 
-          {/* =================================================
-              LOCATION
-          ================================================= */}
+          <section className="mt-7 border-t border-slate-100 pt-7">
+            <h2 className={sectionTitleClass}>Localização</h2>
 
-          <div className="mt-8 border-t border-zinc-100 pt-8">
-
-            <h2 className="text-sm font-semibold text-zinc-950">
-              Localização
-            </h2>
-
-            <p className="mt-1 text-xs text-zinc-400">
-              Informe onde essa tarefa será realizada.
-            </p>
-
-            <div className="mt-5 grid gap-5 sm:grid-cols-3">
-
-              {/* BUILDING */}
-
-              <div className="sm:col-span-3">
-
-                <label className="mb-2 block text-sm font-medium text-zinc-700">
+            <div className="mt-4 grid gap-5 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className={labelClass} htmlFor="task-building">
                   Edifício
                 </label>
 
                 <input
+                  id="task-building"
                   type="text"
                   value={building}
-                  onChange={(event) =>
-                    setBuilding(
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => setBuilding(event.target.value)}
                   placeholder="Ex.: Royal Palace"
                   maxLength={150}
-                  className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-zinc-300 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
+                  className={fieldClass}
                 />
-
               </div>
 
-              {/* BLOCK */}
-
               <div>
-
-                <label className="mb-2 block text-sm font-medium text-zinc-700">
+                <label className={labelClass} htmlFor="task-block">
                   Bloco
                 </label>
 
                 <input
+                  id="task-block"
                   type="text"
                   value={block}
-                  onChange={(event) =>
-                    setBlock(
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => setBlock(event.target.value)}
                   placeholder="Ex.: B"
                   maxLength={50}
-                  className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-zinc-300 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
+                  className={fieldClass}
                 />
-
               </div>
 
-              {/* APARTMENT */}
-
               <div>
-
-                <label className="mb-2 block text-sm font-medium text-zinc-700">
+                <label className={labelClass} htmlFor="task-apartment">
                   Apartamento
                 </label>
 
                 <input
+                  id="task-apartment"
                   type="text"
                   value={apartment}
-                  onChange={(event) =>
-                    setApartment(
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => setApartment(event.target.value)}
                   placeholder="Ex.: 505"
                   maxLength={50}
-                  className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-zinc-300 focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
+                  className={fieldClass}
                 />
-
               </div>
-
             </div>
+          </section>
 
-          </div>
+          {/* RECORRÊNCIA */}
 
-          {/* =================================================
-              RECURRENCE
-          ================================================= */}
-
-          <div className="mt-8 border-t border-zinc-100 pt-8">
-
+          <section className="mt-7 border-t border-slate-100 pt-7">
             <div className="flex items-start gap-3">
-
-              {/* CHECKBOX */}
-
               <button
                 type="button"
-                onClick={() =>
-                  setIsRecurring(
-                    !isRecurring,
-                  )
-                }
-                aria-label="Ativar tarefa recorrente"
-                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
+                onClick={() => setIsRecurring(!isRecurring)}
+                role="switch"
+                aria-checked={isRecurring}
+                aria-label="Tarefa recorrente"
+                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
                   isRecurring
-                    ? "border-zinc-900 bg-zinc-900 text-white"
-                    : "border-zinc-300 bg-white"
+                    ? "border-slate-900 bg-slate-900 text-white"
+                    : "border-slate-300 bg-white hover:border-slate-500"
                 }`}
               >
-
                 {isRecurring && (
                   <svg
                     width="12"
@@ -504,179 +451,104 @@ function CreateTask() {
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="3"
+                    strokeWidth="3.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   >
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
                 )}
-
               </button>
 
-              {/* LABEL */}
-
               <div>
-
                 <button
                   type="button"
-                  onClick={() =>
-                    setIsRecurring(
-                      !isRecurring,
-                    )
-                  }
-                  className="text-left text-sm font-semibold text-zinc-900"
+                  onClick={() => setIsRecurring(!isRecurring)}
+                  className="text-left text-[15px] font-semibold text-slate-900"
                 >
                   Tarefa recorrente
                 </button>
 
-                <p className="mt-1 text-xs text-zinc-400">
-                  Após ser concluída, a tarefa retornará automaticamente quando o período terminar.
+                <p className="mt-1 max-w-md text-xs leading-5 text-slate-400">
+                  Ao concluir, a tarefa volta automaticamente quando o período
+                  terminar.
                 </p>
-
               </div>
-
             </div>
 
-            {/* RECURRENCE OPTIONS */}
-
             {isRecurring && (
-              <div className="mt-5">
-
-                <label className="mb-3 block text-sm font-medium text-zinc-700">
-                  Frequência
-                </label>
+              <div className="mt-5 rounded-2xl bg-slate-50 p-4 sm:p-5">
+                <span className={labelClass}>Frequência</span>
 
                 <div className="grid gap-2 sm:grid-cols-3">
-
-                  {/* DAILY */}
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setRecurrenceType(
-                        "diaria",
-                      )
-                    }
-                    className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${
-                      recurrenceType === "diaria"
-                        ? "border-zinc-900 bg-zinc-950 text-white"
-                        : "border-zinc-200 text-zinc-600 hover:border-zinc-300"
-                    }`}
-                  >
-                    Diária
-                  </button>
-
-                  {/* WEEKLY */}
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setRecurrenceType(
-                        "semanal",
-                      )
-                    }
-                    className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${
-                      recurrenceType === "semanal"
-                        ? "border-zinc-900 bg-zinc-950 text-white"
-                        : "border-zinc-200 text-zinc-600 hover:border-zinc-300"
-                    }`}
-                  >
-                    Semanal
-                  </button>
-
-                  {/* MONTHLY */}
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setRecurrenceType(
-                        "mensal",
-                      )
-                    }
-                    className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${
-                      recurrenceType === "mensal"
-                        ? "border-zinc-900 bg-zinc-950 text-white"
-                        : "border-zinc-200 text-zinc-600 hover:border-zinc-300"
-                    }`}
-                  >
-                    Mensal
-                  </button>
-
+                  {recurrenceOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setRecurrenceType(option.value)}
+                      aria-pressed={recurrenceType === option.value}
+                      className={`rounded-xl border px-4 py-3 text-sm font-medium transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+                        recurrenceType === option.value
+                          ? "border-slate-900 bg-slate-900 text-white"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
                 </div>
 
-                {/* INTERVAL */}
-
-                <div className="mt-5 max-w-sm">
-
-                  <label className="mb-2 block text-sm font-medium text-zinc-700">
+                <div className="mt-5">
+                  <label className={labelClass} htmlFor="task-interval">
                     Repetir a cada
                   </label>
 
                   <div className="flex items-center gap-3">
-
                     <input
+                      id="task-interval"
                       type="number"
                       min="1"
                       max="120"
                       value={recurrenceInterval}
                       onChange={(event) =>
-                        setRecurrenceInterval(
-                          event.target.value,
-                        )
+                        setRecurrenceInterval(event.target.value)
                       }
                       required
-                      className="w-24 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100"
+                      className={`${fieldClass} w-24`}
                     />
 
-                    <span className="text-sm text-zinc-500">
+                    <span className="text-sm text-slate-500">
                       {getRecurrenceUnit()}
                     </span>
-
                   </div>
-
-                  <p className="mt-2 text-xs text-zinc-400">
-                    A tarefa será recriada automaticamente após ser concluída.
-                  </p>
-
                 </div>
-
               </div>
             )}
-
-          </div>
-
-          {/* =================================================
-              ACTIONS
-          ================================================= */}
-
-          <div className="mt-8 flex flex-col-reverse gap-3 border-t border-zinc-100 pt-6 sm:flex-row sm:justify-end">
-
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/dashboard")
-              }
-              disabled={loading}
-              className="rounded-xl border border-zinc-200 px-5 py-3 text-sm font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Cancelar
-            </button>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-xl bg-zinc-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loading
-                ? "Criando..."
-                : "Criar tarefa"}
-            </button>
-
-          </div>
-
+          </section>
         </form>
 
-      </div>
+        {/* FOOTER */}
 
+        <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-100 bg-white px-6 py-4 sm:flex-row sm:justify-end sm:px-8">
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={loading}
+            className="h-11 rounded-full border border-slate-200 px-6 text-sm font-medium text-slate-600 transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="submit"
+            form="create-task-form"
+            disabled={loading}
+            className="inline-flex h-11 items-center justify-center rounded-full bg-slate-900 px-6 text-sm font-medium text-white shadow-[0_10px_25px_rgba(15,23,42,0.18)] transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? "Criando..." : "Criar tarefa"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

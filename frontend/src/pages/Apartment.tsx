@@ -5,16 +5,9 @@ import { useNavigate } from "react-router-dom";
 
 import DashboardSidebar from "../components/dashboard/DashboardSidebar";
 
-import {
-  deleteApartment,
-  getApartments,
-} from "../services/apartment";
+import { deleteApartment, getApartments } from "../services/apartment";
 
-import type {
-  Apartment,
-  ApartmentStatus,
-} from "../types/apartment";
-
+import type { Apartment, ApartmentStatus } from "../types/apartment";
 
 /* =========================================================
    STATUS
@@ -22,49 +15,51 @@ import type {
 
 const statusConfig: Record<
   ApartmentStatus,
-  {
-    label: string;
-    className: string;
-  }
+  { label: string; pill: string; dot: string }
 > = {
   ativo: {
     label: "Ativo",
-    className:
-      "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-  },
-
-  inativo: {
-    label: "Inativo",
-    className:
-      "bg-zinc-100 text-zinc-600 ring-zinc-500/20",
+    pill: "bg-emerald-50 text-emerald-700",
+    dot: "bg-emerald-500",
   },
 
   manutencao: {
     label: "Manutenção",
-    className:
-      "bg-amber-50 text-amber-700 ring-amber-600/20",
+    pill: "bg-amber-50 text-amber-700",
+    dot: "bg-amber-400",
+  },
+
+  inativo: {
+    label: "Inativo",
+    pill: "bg-slate-100 text-slate-500",
+    dot: "bg-slate-400",
   },
 };
 
+const statusFilters = [
+  ["todos", "Todos"],
+  ["ativo", "Ativos"],
+  ["manutencao", "Manutenção"],
+  ["inativo", "Inativos"],
+] as const;
 
 /* =========================================================
    HELPERS
 ========================================================= */
 
-function getLocationLabel(
-  apartment: Apartment,
-): string {
-  const parts = [
+function getLocationLabel(apartment: Apartment): string {
+  return [
     apartment.building,
-    apartment.block
-      ? `Bloco ${apartment.block}`
-      : null,
-    `AP. ${apartment.apartment}`,
-  ].filter(Boolean);
-
-  return parts.join(" • ");
+    apartment.block ? `Bloco ${apartment.block}` : null,
+    `AP ${apartment.apartment}`,
+  ]
+    .filter(Boolean)
+    .join(" • ");
 }
 
+function getInitial(apartment: Apartment): string {
+  return apartment.title.trim().charAt(0).toUpperCase() || "A";
+}
 
 /* =========================================================
    PAGE
@@ -73,26 +68,15 @@ function getLocationLabel(
 function Apartments() {
   const navigate = useNavigate();
 
-  const [apartments, setApartments] =
-    useState<Apartment[]>([]);
+  const [apartments, setApartments] = useState<Apartment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState("");
-
-  const [search, setSearch] =
-    useState("");
-
-  const [statusFilter, setStatusFilter] =
-    useState<ApartmentStatus | "todos">(
-      "todos",
-    );
-
-  const [deletingId, setDeletingId] =
-    useState<number | null>(null);
-
+  const [statusFilter, setStatusFilter] = useState<ApartmentStatus | "todos">(
+    "todos",
+  );
 
   /* =======================================================
      LOAD
@@ -103,25 +87,18 @@ function Apartments() {
       try {
         setError("");
 
-        const data =
-          await getApartments();
-
+        const data = await getApartments();
         setApartments(data);
-      } catch (error) {
+      } catch (loadError) {
         if (
-          axios.isAxiosError(error) &&
-          error.response?.status === 401
+          axios.isAxiosError(loadError) &&
+          loadError.response?.status === 401
         ) {
-          navigate("/login", {
-            replace: true,
-          });
-
+          navigate("/login", { replace: true });
           return;
         }
 
-        setError(
-          "Não foi possível carregar os apartamentos.",
-        );
+        setError("Não foi possível carregar os apartamentos.");
       } finally {
         setLoading(false);
       }
@@ -130,105 +107,81 @@ function Apartments() {
     loadApartments();
   }, [navigate]);
 
-
   /* =======================================================
      FILTER
   ======================================================= */
 
-  const filteredApartments =
-    useMemo(() => {
-      const normalizedSearch =
-        search
-          .trim()
-          .toLowerCase();
+  const filteredApartments = useMemo(() => {
+    const term = search.trim().toLowerCase();
 
-      return apartments.filter(
-        (apartment) => {
-          const matchesSearch =
-            !normalizedSearch ||
-            apartment.title
-              .toLowerCase()
-              .includes(
-                normalizedSearch,
-              ) ||
-            apartment.building
-              .toLowerCase()
-              .includes(
-                normalizedSearch,
-              ) ||
-            apartment.apartment
-              .toLowerCase()
-              .includes(
-                normalizedSearch,
-              ) ||
-            apartment.block
-              ?.toLowerCase()
-              .includes(
-                normalizedSearch,
-              );
+    return apartments.filter((apartment) => {
+      const matchesStatus =
+        statusFilter === "todos" || apartment.status === statusFilter;
 
-          const matchesStatus =
-            statusFilter === "todos" ||
-            apartment.status ===
-              statusFilter;
+      if (!matchesStatus) {
+        return false;
+      }
 
-          return (
-            matchesSearch &&
-            matchesStatus
-          );
-        },
-      );
-    }, [
-      apartments,
-      search,
-      statusFilter,
-    ]);
+      if (!term) {
+        return true;
+      }
 
+      const haystack = [
+        apartment.title,
+        apartment.building,
+        apartment.apartment,
+        apartment.block,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(term);
+    });
+  }, [apartments, search, statusFilter]);
+
+  /* =======================================================
+     COUNTERS
+  ======================================================= */
+
+  const activeCount = apartments.filter(
+    (apartment) => apartment.status === "ativo",
+  ).length;
+
+  const maintenanceCount = apartments.filter(
+    (apartment) => apartment.status === "manutencao",
+  ).length;
+
+  const hasActiveFilters = search.trim() !== "" || statusFilter !== "todos";
 
   /* =======================================================
      DELETE
   ======================================================= */
 
-  async function handleDelete(
-    apartment: Apartment,
-  ) {
-    const confirmed =
-      window.confirm(
-        `Deseja realmente excluir o apartamento "${apartment.title}"?`,
-      );
+  async function handleDelete(apartment: Apartment) {
+    const confirmed = window.confirm(
+      `Deseja realmente excluir o apartamento "${apartment.title}"?`,
+    );
 
     if (!confirmed) {
       return;
     }
 
     try {
-      setDeletingId(
-        apartment.id,
-      );
-
+      setDeletingId(apartment.id);
       setError("");
 
-      await deleteApartment(
-        apartment.id,
-      );
+      await deleteApartment(apartment.id);
 
-      setApartments(
-        (current) =>
-          current.filter(
-            (item) =>
-              item.id !==
-              apartment.id,
-          ),
+      setApartments((current) =>
+        current.filter((item) => item.id !== apartment.id),
       );
     } catch {
-      setError(
-        "Não foi possível excluir o apartamento.",
-      );
+      setError("Não foi possível excluir o apartamento.");
     } finally {
       setDeletingId(null);
     }
   }
-
 
   /* =======================================================
      LOADING
@@ -236,11 +189,11 @@ function Apartments() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-zinc-950">
-        <div className="text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-zinc-700 border-t-white" />
+      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-white via-slate-50 to-[#e8eefb]">
+        <div className="flex flex-col items-center text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900" />
 
-          <p className="mt-4 text-sm text-zinc-400">
+          <p className="mt-5 text-sm font-medium text-slate-500">
             Carregando apartamentos...
           </p>
         </div>
@@ -248,467 +201,298 @@ function Apartments() {
     );
   }
 
-
   /* =======================================================
      UI
   ======================================================= */
 
   return (
-    <div className="min-h-screen bg-[#f7f7f8] text-zinc-900">
+    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-[#e8eefb] text-slate-900">
       <div className="min-h-screen lg:flex">
-
-        {/* =================================================
-            SIDEBAR
-        ================================================= */}
-
         <DashboardSidebar />
 
-
-        {/* =================================================
-            MAIN
-        ================================================= */}
-
         <main className="min-w-0 flex-1">
-          <div className="mx-auto max-w-375 px-4 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
-
-            {/* =================================================
+          <div className="mx-auto max-w-[1380px] px-5 py-7 sm:px-8 lg:px-10 xl:px-12">
+            {/* =============================================
                 HEADER
-            ================================================= */}
+            ============================================= */}
 
-            <header className="mb-7 flex flex-col gap-5 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
-
-              <div className="min-w-0">
-
-                <p className="text-sm font-medium text-zinc-400">
-                  Gestão de imóveis
-                </p>
-
-                <h1 className="mt-1 text-3xl font-bold tracking-tight text-zinc-950 sm:text-4xl">
+            <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h1 className="text-[2rem] font-semibold leading-none tracking-[-0.035em] text-slate-900 sm:text-[2.3rem]">
                   Apartamentos
                 </h1>
 
-                <p className="mt-2 max-w-2xl text-sm text-zinc-500">
-                  Cadastre e organize os apartamentos utilizados pelas operações do Simple Task.
+                <p className="mt-3 text-[15px] text-slate-500">
+                  {apartments.length}{" "}
+                  {apartments.length === 1 ? "imóvel" : "imóveis"} cadastrados ·{" "}
+                  {activeCount} ativos
+                  {maintenanceCount > 0 &&
+                    ` · ${maintenanceCount} em manutenção`}
                 </p>
-
               </div>
-
 
               <button
                 type="button"
-                onClick={() =>
-                  navigate(
-                    "/apartments/new",
-                  )
-                }
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-950 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 hover:shadow-md sm:w-auto"
+                onClick={() => navigate("/apartments/new")}
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-6 text-[15px] font-medium text-white shadow-[0_10px_25px_rgba(15,23,42,0.18)] transition duration-200 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:w-auto"
               >
-                <span className="text-lg leading-none">
-                  +
-                </span>
-
+                <span className="text-lg font-light leading-none">+</span>
                 Novo apartamento
               </button>
-
             </header>
 
-
-            {/* =================================================
+            {/* =============================================
                 ERROR
-            ================================================= */}
+            ============================================= */}
 
             {error && (
-              <div className="mb-5 flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                <span>
-                  {error}
-                </span>
+              <div className="mt-5 flex items-center justify-between gap-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+                <p className="text-sm text-red-600">{error}</p>
 
                 <button
                   type="button"
-                  onClick={() =>
-                    window.location.reload()
-                  }
-                  className="shrink-0 font-semibold underline underline-offset-2"
+                  onClick={() => window.location.reload()}
+                  className="shrink-0 text-sm font-medium text-red-500 transition hover:text-red-700"
                 >
                   Tentar novamente
                 </button>
               </div>
             )}
 
-
-            {/* =================================================
+            {/* =============================================
                 TOOLBAR
-            ================================================= */}
+            ============================================= */}
 
-            <section className="mb-5 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-
+            <section className="mt-6 rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_2px_10px_rgba(15,23,42,0.05)] backdrop-blur-sm">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 {/* SEARCH */}
 
-                <div className="relative w-full lg:max-w-md">
-
+                <div className="relative w-full lg:max-w-sm">
                   <svg
-                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
-                    width="17"
-                    height="17"
+                    width="16"
+                    height="16"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
+                    strokeLinecap="round"
+                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
                   >
-                    <circle
-                      cx="11"
-                      cy="11"
-                      r="7"
-                    />
-
+                    <circle cx="11" cy="11" r="7" />
                     <path d="m20 20-3.5-3.5" />
                   </svg>
 
                   <input
-                    type="text"
+                    type="search"
                     value={search}
-                    onChange={(event) =>
-                      setSearch(
-                        event.target.value,
-                      )
-                    }
-                    placeholder="Buscar apartamento..."
-                    className="w-full rounded-xl border border-zinc-200 bg-zinc-50 py-2.5 pl-10 pr-4 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-950/5"
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Buscar por título, edifício ou número"
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-900/10"
                   />
-
                 </div>
-
 
                 {/* STATUS FILTER */}
 
                 <div className="flex gap-2 overflow-x-auto pb-1 lg:pb-0">
-
-                  {(
-                    [
-                      [
-                        "todos",
-                        "Todos",
-                      ],
-                      [
-                        "ativo",
-                        "Ativos",
-                      ],
-                      [
-                        "manutencao",
-                        "Manutenção",
-                      ],
-                      [
-                        "inativo",
-                        "Inativos",
-                      ],
-                    ] as const
-                  ).map(
-                    ([
-                      value,
-                      label,
-                    ]) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() =>
-                          setStatusFilter(
-                            value,
-                          )
-                        }
-                        className={`shrink-0 rounded-lg px-3 py-2 text-xs font-semibold transition ${
-                          statusFilter ===
-                          value
-                            ? "bg-zinc-950 text-white"
-                            : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-950"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ),
-                  )}
-
+                  {statusFilters.map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setStatusFilter(value)}
+                      aria-pressed={statusFilter === value}
+                      className={`h-10 shrink-0 rounded-full px-4 text-sm font-medium transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+                        statusFilter === value
+                          ? "bg-slate-900 text-white"
+                          : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
-
               </div>
 
+              {hasActiveFilters && (
+                <div className="mt-4 flex items-center justify-between gap-4 border-t border-slate-100 pt-4">
+                  <p className="text-sm text-slate-500">
+                    {filteredApartments.length}{" "}
+                    {filteredApartments.length === 1
+                      ? "resultado"
+                      : "resultados"}
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearch("");
+                      setStatusFilter("todos");
+                    }}
+                    className="text-sm font-medium text-blue-600 transition hover:text-blue-700"
+                  >
+                    Limpar filtros
+                  </button>
+                </div>
+              )}
             </section>
 
-
-            {/* =================================================
-                SUMMARY
-            ================================================= */}
-
-            <div className="mb-4 flex items-center justify-between gap-3">
-
-              <div>
-                <p className="text-sm font-semibold text-zinc-900">
-                  {filteredApartments.length}{" "}
-                  {filteredApartments.length ===
-                  1
-                    ? "apartamento"
-                    : "apartamentos"}
-                </p>
-
-                {search && (
-                  <p className="mt-0.5 text-xs text-zinc-400">
-                    Resultado da busca por “
-                    {search}”
-                  </p>
-                )}
-              </div>
-
-              {search && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSearch("")
-                  }
-                  className="text-xs font-semibold text-zinc-500 transition hover:text-zinc-950"
-                >
-                  Limpar busca
-                </button>
-              )}
-
-            </div>
-
-
-            {/* =================================================
+            {/* =============================================
                 EMPTY STATE
-            ================================================= */}
+            ============================================= */}
 
-            {filteredApartments.length ===
-              0 && (
-              <section className="rounded-2xl border border-dashed border-zinc-300 bg-white px-6 py-14 text-center">
-
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-500">
-
+            {filteredApartments.length === 0 ? (
+              <section className="mt-5 flex flex-col items-center justify-center rounded-2xl border border-white/70 bg-white/90 px-6 py-16 text-center shadow-[0_2px_10px_rgba(15,23,42,0.05)] backdrop-blur-sm">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-400">
                   <svg
-                    width="25"
-                    height="25"
+                    width="22"
+                    height="22"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="1.7"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   >
-                    <path d="M3 21h18" />
-                    <path d="M5 21V6l7-3 7 3v15" />
-                    <path d="M9 21v-5h6v5" />
-                    <path d="M9 9h1" />
-                    <path d="M14 9h1" />
-                    <path d="M9 12h1" />
-                    <path d="M14 12h1" />
+                    <rect x="5" y="3" width="14" height="18" rx="2.5" />
+                    <path d="M9.5 7.5h1M13.5 7.5h1M9.5 11.5h1M13.5 11.5h1M9.5 15.5h1M13.5 15.5h1" />
                   </svg>
-
                 </div>
 
-                <h2 className="mt-5 text-base font-semibold text-zinc-950">
-                  {apartments.length ===
-                  0
-                    ? "Nenhum apartamento cadastrado"
-                    : "Nenhum resultado encontrado"}
+                <h2 className="mt-4 text-[15px] font-medium text-slate-700">
+                  {apartments.length === 0
+                    ? "Você ainda não cadastrou apartamentos"
+                    : "Nenhum apartamento com esses filtros"}
                 </h2>
 
-                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-500">
-                  {apartments.length ===
-                  0
-                    ? "Comece cadastrando o primeiro apartamento para centralizar seus imóveis."
-                    : "Tente alterar os filtros ou utilizar outro termo de busca."}
+                <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">
+                  {apartments.length === 0
+                    ? "Cadastre seus imóveis para vincular tarefas e manutenções a cada endereço."
+                    : "Tente outro termo de busca ou volte para todos os status."}
                 </p>
 
-                {apartments.length ===
-                  0 && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        "/apartments/new",
-                      )
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (apartments.length === 0) {
+                      navigate("/apartments/new");
+                      return;
                     }
-                    className="mt-6 rounded-xl bg-zinc-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800"
-                  >
-                    Cadastrar apartamento
-                  </button>
-                )}
 
+                    setSearch("");
+                    setStatusFilter("todos");
+                  }}
+                  className="mt-5 text-sm font-medium text-blue-600 transition hover:text-blue-700"
+                >
+                  {apartments.length === 0
+                    ? "Cadastrar o primeiro apartamento"
+                    : "Limpar filtros"}
+                </button>
               </section>
-            )}
+            ) : (
+              /* =============================================
+                  GRID
+              ============================================= */
 
+              <section className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {filteredApartments.map((apartment) => {
+                  const status = statusConfig[apartment.status];
+                  const isDeleting = deletingId === apartment.id;
 
-            {/* =================================================
-                APARTMENT GRID
-            ================================================= */}
+                  return (
+                    <article
+                      key={apartment.id}
+                      className={`flex flex-col rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_2px_10px_rgba(15,23,42,0.05)] backdrop-blur-sm transition duration-200 hover:shadow-[0_10px_28px_rgba(15,23,42,0.09)] ${
+                        isDeleting ? "pointer-events-none opacity-50" : ""
+                      }`}
+                    >
+                      {/* HEADER */}
 
-            {filteredApartments.length >
-              0 && (
-              <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-
-                {filteredApartments.map(
-                  (apartment) => {
-                    const status =
-                      statusConfig[
-                        apartment.status
-                      ];
-
-                    const isDeleting =
-                      deletingId ===
-                      apartment.id;
-
-                    return (
-                      <article
-                        key={
-                          apartment.id
-                        }
-                        className="group rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md"
-                      >
-
-                        {/* CARD HEADER */}
-
-                        <div className="flex items-start justify-between gap-4">
-
-                          <div className="flex min-w-0 items-center gap-3">
-
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-950 text-white">
-
-                              <svg
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                              >
-                                <path d="M3 21h18" />
-                                <path d="M5 21V6l7-3 7 3v15" />
-                                <path d="M9 21v-5h6v5" />
-                                <path d="M9 9h1" />
-                                <path d="M14 9h1" />
-                                <path d="M9 12h1" />
-                                <path d="M14 12h1" />
-                              </svg>
-
-                            </div>
-
-                            <div className="min-w-0">
-
-                              <h2 className="truncate text-sm font-bold text-zinc-950">
-                                {apartment.title}
-                              </h2>
-
-                              <p className="mt-1 truncate text-xs text-zinc-400">
-                                {getLocationLabel(
-                                  apartment,
-                                )}
-                              </p>
-
-                            </div>
-
-                          </div>
-
-
-                          <span
-                            className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset ${status.className}`}
-                          >
-                            {status.label}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#eaf0fb] text-sm font-semibold text-slate-600">
+                            {getInitial(apartment)}
                           </span>
 
+                          <div className="min-w-0">
+                            <h2 className="truncate text-[15px] font-semibold tracking-[-0.01em] text-slate-900">
+                              {apartment.title}
+                            </h2>
+
+                            <p className="mt-0.5 truncate text-xs text-slate-400">
+                              {getLocationLabel(apartment)}
+                            </p>
+                          </div>
                         </div>
 
+                        <span
+                          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${status.pill}`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${status.dot}`}
+                          />
+                          {status.label}
+                        </span>
+                      </div>
 
-                        {/* DESCRIPTION */}
+                      {/* DESCRIPTION */}
 
-                        {apartment.description && (
-                          <p className="mt-5 line-clamp-2 text-sm leading-5 text-zinc-500">
-                            {
-                              apartment.description
-                            }
+                      {apartment.description && (
+                        <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-500">
+                          {apartment.description}
+                        </p>
+                      )}
+
+                      {/* DETAILS */}
+
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        <div className="rounded-xl bg-slate-50/80 px-3 py-2.5">
+                          <p className="text-xs text-slate-400">Edifício</p>
+
+                          <p className="mt-1 truncate text-sm font-medium text-slate-700">
+                            {apartment.building}
                           </p>
-                        )}
-
-
-                        {/* DETAILS */}
-
-                        <div className="mt-5 grid grid-cols-2 gap-2">
-
-                          <div className="rounded-xl bg-zinc-50 px-3 py-2.5">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
-                              Edifício
-                            </p>
-
-                            <p className="mt-1 truncate text-xs font-semibold text-zinc-700">
-                              {
-                                apartment.building
-                              }
-                            </p>
-                          </div>
-
-                          <div className="rounded-xl bg-zinc-50 px-3 py-2.5">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
-                              Apartamento
-                            </p>
-
-                            <p className="mt-1 text-xs font-semibold text-zinc-700">
-                              {
-                                apartment.apartment
-                              }
-                            </p>
-                          </div>
-
                         </div>
 
+                        <div className="rounded-xl bg-slate-50/80 px-3 py-2.5">
+                          <p className="text-xs text-slate-400">Apartamento</p>
 
-                        {/* ACTIONS */}
-
-                        <div className="mt-5 flex gap-2 border-t border-zinc-100 pt-4">
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              navigate(
-                                `/apartments/${apartment.id}/edit`,
-                              )
-                            }
-                            className="flex-1 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 hover:text-zinc-950"
-                          >
-                            Editar
-                          </button>
-
-                          <button
-                            type="button"
-                            disabled={
-                              isDeleting
-                            }
-                            onClick={() =>
-                              handleDelete(
-                                apartment,
-                              )
-                            }
-                            className="rounded-xl border border-red-200 px-3 py-2.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {isDeleting ? (
-                              <span className="flex items-center gap-2">
-                                <span className="h-3 w-3 animate-spin rounded-full border border-red-300 border-t-red-600" />
-                                Excluindo
-                              </span>
-                            ) : (
-                              "Excluir"
-                            )}
-                          </button>
-
+                          <p className="mt-1 truncate text-sm font-medium text-slate-700">
+                            {apartment.apartment}
+                          </p>
                         </div>
+                      </div>
 
-                      </article>
-                    );
-                  },
-                )}
+                      {/* ACTIONS */}
 
+                      <div className="mt-auto flex gap-2 border-t border-slate-100 pt-4">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate(`/apartments/${apartment.id}/edit`)
+                          }
+                          className="h-10 flex-1 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                        >
+                          Editar
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={isDeleting}
+                          onClick={() => handleDelete(apartment)}
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium text-red-500 transition hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isDeleting && (
+                            <span className="h-3 w-3 animate-spin rounded-full border border-red-300 border-t-red-600" />
+                          )}
+                          {isDeleting ? "Excluindo" : "Excluir"}
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
               </section>
             )}
-
           </div>
         </main>
-
       </div>
     </div>
   );

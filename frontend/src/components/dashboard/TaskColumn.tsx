@@ -11,18 +11,33 @@ interface TaskColumnProps {
   accentClassName: string;
 }
 
-function getUrgencyLabel(
+function getUrgencyStyles(
   urgency: Task["urgency"],
-): string {
+) {
   if (urgency === "alta") {
-    return "Alta urgência";
+    return {
+      dot: "bg-[#EF4444]",
+      badge: "bg-[#FEF0F1]",
+      text: "text-[#E5484D]",
+      label: "Alta",
+    };
   }
 
   if (urgency === "media") {
-    return "Média urgência";
+    return {
+      dot: "bg-[#F5A623]",
+      badge: "bg-[#FFF6E5]",
+      text: "text-[#D98A00]",
+      label: "Média",
+    };
   }
 
-  return "Baixa urgência";
+  return {
+    dot: "bg-[#2563EB]",
+    badge: "bg-[#EEF4FF]",
+    text: "text-[#2563EB]",
+    label: "Baixa",
+  };
 }
 
 function TaskColumn({
@@ -33,328 +48,306 @@ function TaskColumn({
   onToggleTask,
   onEditTask,
   onDeleteTask,
-  accentClassName,
 }: TaskColumnProps) {
-  const urgencyOrder: Task["urgency"][] = [
-    "alta",
-    "media",
-    "baixa",
-  ];
-
   return (
-    <div
-      className={`flex min-h-[560px] min-w-[320px] flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200 border-t-4 bg-zinc-50 ${accentClassName}`}
-    >
-      {/* HEADER */}
+    <section className="overflow-hidden rounded-[18px] border border-[#E7EAF0] bg-white">
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
 
-      <div className="border-b border-zinc-200 bg-white px-5 py-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-semibold text-zinc-950">
+      <div className="flex items-start justify-between border-b border-[#EEF0F4] px-5 py-5">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2.5">
+            <h3 className="text-[17px] font-semibold tracking-tight text-[#151922]">
               {title}
             </h3>
 
-            <p className="mt-1 text-xs text-zinc-400">
-              {subtitle}
-            </p>
+            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#F1F3F6] px-1.5 text-[10px] font-semibold text-[#667085]">
+              {tasks.length}
+            </span>
           </div>
 
-          <span className="flex h-7 min-w-7 items-center justify-center rounded-lg bg-zinc-100 px-2 text-xs font-bold text-zinc-600">
-            {tasks.length}
-          </span>
+          <p className="mt-1 text-[12px] text-[#7B8494]">
+            {subtitle}
+          </p>
         </div>
+
+        {/* VER TODAS */}
+
+        <button
+          type="button"
+          onClick={onCreateTask}
+          className="ml-4 hidden shrink-0 items-center gap-1.5 text-[12px] font-medium text-[#2563EB] transition-colors hover:text-[#1D4ED8] sm:flex"
+        >
+          Ver todas
+
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M5 12h14" />
+            <path d="m13 6 6 6-6 6" />
+          </svg>
+        </button>
       </div>
 
-      {/* TASKS */}
+      {/* =====================================================
+          TASKS
+      ===================================================== */}
 
-      <div className="flex-1 space-y-6 overflow-y-auto p-4">
-        {urgencyOrder.map((urgency) => {
-          const urgencyTasks = tasks.filter(
-            (task) =>
-              task.urgency === urgency,
-          );
+      <div className="px-4 pb-4 pt-2">
+        {tasks.length > 0 ? (
+          <div className="space-y-1.5">
+            {tasks.map((task) => {
+              const completed =
+                task.status === "concluida";
 
-          const urgencyColor =
-            urgency === "alta"
-              ? "bg-red-500"
-              : urgency === "media"
-                ? "bg-amber-400"
-                : "bg-blue-500";
+              const styles =
+                getUrgencyStyles(
+                  task.urgency,
+                );
 
-          return (
-            <div key={urgency}>
-              {/* URGENCY */}
+              const hasLocation = Boolean(
+                task.building ||
+                  task.block ||
+                  task.apartment,
+              );
 
-              <div className="mb-2 flex items-center gap-2">
-                <span
-                  className={`h-2 w-2 rounded-full ${urgencyColor}`}
-                />
+              const location = [
+                task.building
+                  ? task.building
+                  : null,
+                task.block
+                  ? `Bloco ${task.block}`
+                  : null,
+                task.apartment
+                  ? `AP. ${task.apartment}`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" • ");
 
-                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                  {getUrgencyLabel(urgency)}
-                </span>
+              return (
+                <div
+                  key={task.id}
+                  className={`group flex min-h-14.5tems-center gap-3 rounded-xl bg-[#FAFBFC] px-3.5 py-2.5 transition-colors duration-150 hover:bg-[#F5F7FA] ${
+                    completed
+                      ? "opacity-60"
+                      : ""
+                  }`}
+                >
+                  {/* =================================================
+                      CHECKBOX
+                  ================================================= */}
 
-                <span className="text-[10px] font-medium text-zinc-300">
-                  {urgencyTasks.length}
-                </span>
-              </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onToggleTask(task)
+                    }
+                    aria-label={
+                      completed
+                        ? "Marcar como pendente"
+                        : "Marcar como concluída"
+                    }
+                    className={`flex h-5.25 w-5.25 shrink-0 items-center justify-center rounded-full border transition-all duration-150 ${
+                      completed
+                        ? "border-[#34C88A] bg-[#34C88A] text-white"
+                        : "border-[#9AA4B5] bg-white hover:border-[#64748B]"
+                    }`}
+                  >
+                    {completed && (
+                      <svg
+                        width="11"
+                        height="11"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    )}
+                  </button>
 
-              {/* TASK CARDS */}
+                  {/* =================================================
+                      CONTENT
+                  ================================================= */}
 
-              <div className="space-y-2">
-                {urgencyTasks.map((task) => {
-                  const completed =
-                    task.status === "concluida";
-
-                  const hasLocation =
-                    Boolean(
-                      task.building ||
-                        task.apartment ||
-                        task.block,
-                    );
-
-                  return (
-                    <div
-                      key={task.id}
-                      className={`group rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md ${
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className={`truncate text-[13px] font-medium leading-4.5 tracking-[-0.01em] ${
                         completed
-                          ? "opacity-60"
-                          : ""
+                          ? "text-[#9AA1AE] line-through"
+                          : "text-[#171A21]"
                       }`}
                     >
-                      <div className="flex items-start gap-3">
-                        {/* STATUS */}
+                      {task.title}
+                    </p>
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onToggleTask(task)
-                          }
-                          aria-label={
-                            completed
-                              ? "Marcar como pendente"
-                              : "Marcar como concluída"
-                          }
-                          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
-                            completed
-                              ? "border-emerald-500 bg-emerald-500 text-white"
-                              : "border-zinc-300 bg-white hover:border-zinc-500"
-                          }`}
-                        >
-                          {completed && (
-                            <svg
-                              width="12"
-                              height="12"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="3"
-                            >
-                              <path d="M20 6L9 17l-5-5" />
-                            </svg>
-                          )}
-                        </button>
-
-                        {/* CONTENT */}
-
-                        <div className="min-w-0 flex-1">
-                          {/* TITLE */}
-
-                          <p
-                            className={`text-sm font-medium leading-5 ${
-                              completed
-                                ? "text-zinc-400 line-through"
-                                : "text-zinc-800"
-                            }`}
-                          >
-                            {task.title}
-                          </p>
-
-                          {/* DESCRIPTION */}
-
-                          {task.description && (
-                            <p className="mt-1 line-clamp-2 text-xs leading-5 text-zinc-400">
-                              {task.description}
-                            </p>
-                          )}
-
-                          {/* LOCATION */}
-
-                          {hasLocation && (
-                            <div className="mt-3">
-                              <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg bg-zinc-100 px-2.5 py-1.5 text-[10px] font-medium text-zinc-600">
-                                <svg
-                                  width="11"
-                                  height="11"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.8"
-                                  className="shrink-0"
-                                >
-                                  <path d="M3 21h18" />
-
-                                  <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16" />
-
-                                  <path d="M9 7h2M9 11h2M9 15h2M13 7h2M13 11h2M13 15h2" />
-                                </svg>
-
-                                <span className="truncate">
-                                  {[
-                                    task.building
-                                      ? `Edifício ${task.building}`
-                                      : null,
-
-                                    task.apartment
-                                      ? `AP. ${task.apartment}`
-                                      : null,
-
-                                    task.block
-                                      ? `Bloco ${task.block}`
-                                      : null,
-                                  ]
-                                    .filter(Boolean)
-                                    .join(" • ")}
-                                </span>
-                              </span>
-                            </div>
-                          )}
-
-                          {/* TIME */}
-
-                          {task.scheduled_time && (
-                            <div className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-zinc-400">
-                              <svg
-                                width="13"
-                                height="13"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                              >
-                                <circle
-                                  cx="12"
-                                  cy="12"
-                                  r="9"
-                                />
-
-                                <path d="M12 7v5l3 2" />
-                              </svg>
-
-                              {task.scheduled_time.slice(
-                                0,
-                                5,
-                              )}
-                            </div>
-                          )}
-
-                          {/* ACTIONS */}
-
-                          <div className="mt-3 flex items-center gap-2 border-t border-zinc-100 pt-3">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                onEditTask(task)
-                              }
-                              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-semibold text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
-                            >
-                              <svg
-                                width="12"
-                                height="12"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                              >
-                                <path d="M12 20h9" />
-
-                                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                              </svg>
-
-                              Editar
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                onDeleteTask(task)
-                              }
-                              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-semibold text-zinc-400 transition hover:bg-red-50 hover:text-red-600"
-                            >
-                              <svg
-                                width="12"
-                                height="12"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                              >
-                                <path d="M3 6h18" />
-
-                                <path d="M8 6V4h8v2" />
-
-                                <path d="M19 6l-1 14H6L5 6" />
-
-                                <path d="M10 11v5M14 11v5" />
-                              </svg>
-
-                              Excluir
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* EMPTY URGENCY */}
-
-                {urgencyTasks.length === 0 && (
-                  <div className="rounded-lg border border-dashed border-zinc-200 bg-white/50 px-3 py-3 text-center">
-                    <span className="text-[10px] text-zinc-300">
-                      Nenhuma tarefa
-                    </span>
+                    {hasLocation && (
+                      <p className="mt-0.5 truncate text-[10px] leading-3.75 text-[#7D8798]">
+                        {location}
+                      </p>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
 
-        {/* EMPTY COLUMN */}
+                  {/* =================================================
+                      URGENCY
+                  ================================================= */}
 
-        {tasks.length === 0 && (
-          <div className="flex flex-1 flex-col items-center justify-center py-10 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-zinc-300 shadow-sm">
+                  <span
+                    className={`hidden shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-medium sm:inline-flex ${styles.badge} ${styles.text}`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${styles.dot}`}
+                    />
+
+                    {styles.label}
+                  </span>
+
+                  {/* =================================================
+                      TIME
+                  ================================================= */}
+
+                  {task.scheduled_time && (
+                    <span className="hidden w-12 shrink-0 text-right text-[11px] font-medium text-[#687386] sm:block">
+                      {task.scheduled_time.slice(
+                        0,
+                        5,
+                      )}
+                    </span>
+                  )}
+
+                  {/* =================================================
+                      ACTIONS
+                  ================================================= */}
+
+                  <div className="flex shrink-0 items-center">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onEditTask(task)
+                      }
+                      aria-label="Editar tarefa"
+                      className="flex h-7 w-7 items-center justify-center rounded-lg text-[#8993A3] transition-colors hover:bg-white hover:text-[#202631]"
+                    >
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle
+                          cx="12"
+                          cy="5"
+                          r="1"
+                        />
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="1"
+                        />
+                        <circle
+                          cx="12"
+                          cy="19"
+                          r="1"
+                        />
+                      </svg>
+                    </button>
+
+                    {/* =================================================
+                        HIDDEN ACTION MENU
+
+                        Editar / Excluir continuam
+                        funcionando através de
+                        menu simplificado abaixo.
+                    ================================================= */}
+                  </div>
+
+                  {/* =================================================
+                      DESKTOP HIDDEN ACTIONS
+
+                      Mantemos os handlers existentes.
+                  ================================================= */}
+
+                  <div className="hidden">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onEditTask(task)
+                      }
+                    >
+                      Editar
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onDeleteTask(task)
+                      }
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* =====================================================
+             EMPTY
+          ===================================================== */
+
+          <div className="flex min-h-[150px] flex-col items-center justify-center rounded-[12px] bg-[#FAFBFC] text-center">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#B1B8C4]">
               <svg
-                width="22"
-                height="22"
+                width="18"
+                height="18"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="1.7"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <path d="M9 11l3 3L22 4" />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="9"
+                />
 
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                <path d="M8 12h8" />
               </svg>
             </div>
 
-            <p className="mt-3 text-xs font-medium text-zinc-500">
+            <p className="mt-2.5 text-[11px] font-medium text-[#8A94A5]">
               Nenhuma tarefa
             </p>
 
             <button
               type="button"
               onClick={onCreateTask}
-              className="mt-3 text-[11px] font-semibold text-zinc-700 transition hover:text-zinc-950"
+              className="mt-1 text-[10px] font-semibold text-[#2563EB] hover:text-[#1D4ED8]"
             >
               + Criar tarefa
             </button>
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }
 

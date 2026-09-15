@@ -1,4 +1,5 @@
 import { api } from "./api";
+
 import type {
   LoginRequest,
   RegisterRequest,
@@ -34,6 +35,12 @@ export async function register(
     "/auth/register",
     data,
   );
+
+  return response.data;
+}
+
+export async function getCurrentUser(): Promise<UserResponse> {
+  const response = await api.get<UserResponse>("/auth/me");
 
   return response.data;
 }
