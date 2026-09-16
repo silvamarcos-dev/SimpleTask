@@ -14,18 +14,23 @@ from app.api import (
     tasks,
 )
 from app.core.config import get_settings
-from app.jobs.scheduler import start_scheduler, stop_scheduler
 
 
 settings = get_settings()
 
 
+# =====================================================
+# LIFESPAN
+# =====================================================
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    start_scheduler()
     yield
-    stop_scheduler()
 
+
+# =====================================================
+# APLICAÇÃO
+# =====================================================
 
 app = FastAPI(
     title=settings.app_name,
