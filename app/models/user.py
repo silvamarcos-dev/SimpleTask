@@ -1,23 +1,20 @@
 from datetime import datetime
-
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String, func
-
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.database import Base
 
 
 if TYPE_CHECKING:
-
     from app.models.apartment import Apartment
+    from app.models.google_account import GoogleAccount
     from app.models.maintenance import Maintenance
     from app.models.task import Task
 
 
 class User(Base):
-
     __tablename__ = "users"
 
     # =====================================================
@@ -41,9 +38,16 @@ class User(Base):
         nullable=False,
     )
 
-    password_hash: Mapped[str] = mapped_column(
+    password_hash: Mapped[str | None] = mapped_column(
         String(255),
-        nullable=False,
+        nullable=True,
+    )
+
+    google_id: Mapped[str | None] = mapped_column(
+        String(255),
+        unique=True,
+        index=True,
+        nullable=True,
     )
 
     # =====================================================
@@ -63,6 +67,12 @@ class User(Base):
     apartments: Mapped[list["Apartment"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
+    )
+
+    google_account: Mapped["GoogleAccount | None"] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        uselist=False,
     )
 
     # =====================================================

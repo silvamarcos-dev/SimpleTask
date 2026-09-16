@@ -721,7 +721,7 @@ function DashboardSidebar() {
 
       <aside
         className={`relative hidden min-h-screen shrink-0 flex-col bg-[#0E2A31] transition-[width] duration-300 ease-out lg:flex ${
-          desktopCollapsed ? "w-[76px]" : "w-[272px]"
+          desktopCollapsed ? "w-19" : "w-68"
         }`}
       >
         <button

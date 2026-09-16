@@ -287,7 +287,7 @@ function EditTask() {
      SHELL DO MODAL
   ===================================================== */
 
-  function ModalShell({ children }: { children: React.ReactNode }) {
+  function renderModalShell(children: React.ReactNode) {
     return (
       <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
         <button
@@ -301,7 +301,7 @@ function EditTask() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="edit-task-title"
-          className="relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[28px] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.28)] sm:max-h-[88vh] sm:rounded-[24px]"
+          className="relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[28px] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.28)] sm:max-h-[88vh] sm:rounded-3xl"
         >
           {children}
         </div>
@@ -309,7 +309,7 @@ function EditTask() {
     );
   }
 
-  function CloseButton() {
+  function renderCloseButton() {
     return (
       <button
         type="button"
@@ -338,7 +338,8 @@ function EditTask() {
 
   if (loading) {
     return (
-      <ModalShell>
+      renderModalShell(
+        <>
         <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900" />
 
@@ -346,7 +347,8 @@ function EditTask() {
             Carregando tarefa...
           </p>
         </div>
-      </ModalShell>
+        </>,
+      )
     );
   }
 
@@ -356,9 +358,10 @@ function EditTask() {
 
   if (!task) {
     return (
-      <ModalShell>
+      renderModalShell(
+        <>
         <div className="flex items-start justify-end px-6 pt-5 sm:px-8">
-          <CloseButton />
+          {renderCloseButton()}
         </div>
 
         <div className="flex flex-col items-center px-6 pb-12 text-center sm:px-8">
@@ -382,7 +385,8 @@ function EditTask() {
             Ver todas as tarefas
           </button>
         </div>
-      </ModalShell>
+        </>,
+      )
     );
   }
 
@@ -391,7 +395,8 @@ function EditTask() {
   ===================================================== */
 
   return (
-    <ModalShell>
+    renderModalShell(
+      <>
       {/* HEADER */}
 
       <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-6 py-5 sm:px-8">
@@ -406,7 +411,7 @@ function EditTask() {
           <p className="mt-1 truncate text-sm text-slate-400">{task.title}</p>
         </div>
 
-        <CloseButton />
+        {renderCloseButton()}
       </div>
 
       {/* FORM */}
@@ -697,7 +702,8 @@ function EditTask() {
           {saving ? "Salvando..." : "Salvar alterações"}
         </button>
       </div>
-    </ModalShell>
+      </>,
+    )
   );
 }
 

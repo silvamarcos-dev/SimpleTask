@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 import Dashboard from "./pages/Dashboard";
 
@@ -15,19 +16,34 @@ import CreateTask from "./pages/CreateTask";
 import EditTask from "./pages/EditTask";
 
 import Calendar from "./pages/Calendar";
+import GoogleCallback from "./pages/GoogleCallback";
 
 import Apartments from "./pages/Apartment";
 import CreateApartment from "./pages/CreateApartment";
 import EditApartment from "./pages/EditApartment";
 
+
 function App() {
   return (
     <Routes>
+
       {/* =====================================================
           LOGIN
       ===================================================== */}
 
-      <Route path="/login" element={<Login />} />
+      <Route
+        path="/login"
+        element={<Login />}
+      />
+
+      {/* =====================================================
+          CADASTRO
+      ===================================================== */}
+
+      <Route
+        path="/register"
+        element={<Register />}
+      />
 
       {/* =====================================================
           DASHBOARD
@@ -152,7 +168,21 @@ function App() {
           FALLBACK
       ===================================================== */}
 
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to="/dashboard"
+            replace
+          />
+        }
+      />
+
+      <Route
+  path="/auth/google/callback"
+  element={<GoogleCallback />}
+/>
+
     </Routes>
   );
 }

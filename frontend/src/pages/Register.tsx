@@ -2,16 +2,19 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { login } from "../services/auth";
-import { saveToken } from "../lib/authStorage";
+import { register } from "../services/auth";
 
-function Login() {
+function Register() {
   const navigate = useNavigate();
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -19,31 +22,53 @@ function Login() {
     event.preventDefault();
 
     setError("");
+    setSuccess("");
+
+    if (password !== confirmPassword) {
+      setError("As senhas não coincidem.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("A senha deve possuir pelo menos 6 caracteres.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await login({
+      await register({
+        name,
         email,
         password,
       });
 
-      saveToken(response.access_token);
+      setSuccess(
+        "Conta criada com sucesso! Redirecionando...",
+      );
 
-      navigate("/dashboard");
-    } catch {
-      setError("E-mail ou senha inválidos.");
+      setTimeout(() => {
+        navigate("/login");
+      }, 1200);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      const detail =
+        error?.response?.data?.detail;
+
+      if (typeof detail === "string") {
+        setError(detail);
+      } else {
+        setError(
+          "Não foi possível criar sua conta.",
+        );
+      }
     } finally {
       setLoading(false);
     }
   }
 
-  function handleGoogleLogin() {
-    window.location.href =
-      "http://localhost:8000/auth/google";
-  }
-
-  function handleRegister() {
-    navigate("/register");
+  function handleLogin() {
+    navigate("/login");
   }
 
   return (
@@ -66,7 +91,6 @@ function Login() {
           via-orange-400
           to-yellow-300
           opacity-90
-          blur-[1px]
         "
       />
 
@@ -75,9 +99,9 @@ function Login() {
           pointer-events-none
           absolute
           -right-24
-          top-37.5
-          h-82.5
-          w-82.5
+          top-35
+          h-85
+          w-85
           rounded-full
           bg-linear-to-br
           from-fuchsia-500
@@ -186,10 +210,10 @@ function Login() {
                     md:text-6xl
                   "
                 >
-                  Bem
+                  Crie sua
                   <br />
                   <span className="font-semibold">
-                    vindo.
+                    conta.
                   </span>
                 </h1>
 
@@ -202,8 +226,9 @@ function Login() {
                     text-zinc-600
                   "
                 >
-                  Organize seu dia, acompanhe suas
-                  tarefas e mantenha tudo no lugar.
+                  Tenha um espaço simples para
+                  organizar suas tarefas, compromissos
+                  e rotina.
                 </p>
               </div>
 
@@ -217,12 +242,12 @@ function Login() {
                     text-zinc-500
                   "
                 >
-                  Ainda não possui uma conta?
+                  Já possui uma conta?
                 </p>
 
                 <button
                   type="button"
-                  onClick={handleRegister}
+                  onClick={handleLogin}
                   className="
                     mt-4
                     rounded-full
@@ -245,7 +270,7 @@ function Login() {
                     hover:shadow-lg
                   "
                 >
-                  Cadastre-se
+                  Fazer login
                 </button>
               </div>
             </section>
@@ -267,7 +292,7 @@ function Login() {
             >
               <div className="w-full max-w-md">
 
-                <div className="mb-8">
+                <div className="mb-7">
                   <p
                     className="
                       text-xs
@@ -277,7 +302,7 @@ function Login() {
                       text-zinc-500
                     "
                   >
-                    Acesse sua conta
+                    Comece agora
                   </p>
 
                   <h2
@@ -289,7 +314,7 @@ function Login() {
                       text-zinc-900
                     "
                   >
-                    FAÇA LOGIN
+                    CADASTRE-SE
                   </h2>
                 </div>
 
@@ -299,8 +324,62 @@ function Login() {
 
                 <form
                   onSubmit={handleSubmit}
-                  className="space-y-5"
+                  className="space-y-4"
                 >
+
+                  {/* NOME */}
+
+                  <div>
+                    <label
+                      htmlFor="name"
+                      className="
+                        mb-2
+                        block
+                        text-xs
+                        font-semibold
+                        uppercase
+                        tracking-[0.18em]
+                        text-zinc-600
+                      "
+                    >
+                      Nome
+                    </label>
+
+                    <input
+                      id="name"
+                      type="text"
+                      value={name}
+                      onChange={(event) =>
+                        setName(event.target.value)
+                      }
+                      placeholder="Seu nome"
+                      required
+                      autoComplete="name"
+                      className="
+                        w-full
+                        rounded-2xl
+                        border
+                        border-white/80
+                        bg-white/60
+                        px-5
+                        py-4
+                        text-sm
+                        text-zinc-900
+                        shadow-inner
+                        outline-none
+                        backdrop-blur-xl
+                        transition
+                        placeholder:text-zinc-400
+                        focus:border-zinc-900/30
+                        focus:bg-white/80
+                        focus:ring-4
+                        focus:ring-purple-500/10
+                      "
+                    />
+                  </div>
+
+                  {/* E-MAIL */}
+
                   <div>
                     <label
                       htmlFor="email"
@@ -350,6 +429,8 @@ function Login() {
                     />
                   </div>
 
+                  {/* SENHA */}
+
                   <div>
                     <label
                       htmlFor="password"
@@ -375,7 +456,7 @@ function Login() {
                       }
                       placeholder="••••••••"
                       required
-                      autoComplete="current-password"
+                      autoComplete="new-password"
                       className="
                         w-full
                         rounded-2xl
@@ -399,6 +480,61 @@ function Login() {
                     />
                   </div>
 
+                  {/* CONFIRMAR SENHA */}
+
+                  <div>
+                    <label
+                      htmlFor="confirmPassword"
+                      className="
+                        mb-2
+                        block
+                        text-xs
+                        font-semibold
+                        uppercase
+                        tracking-[0.18em]
+                        text-zinc-600
+                      "
+                    >
+                      Confirmar senha
+                    </label>
+
+                    <input
+                      id="confirmPassword"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(event) =>
+                        setConfirmPassword(
+                          event.target.value,
+                        )
+                      }
+                      placeholder="••••••••"
+                      required
+                      autoComplete="new-password"
+                      className="
+                        w-full
+                        rounded-2xl
+                        border
+                        border-white/80
+                        bg-white/60
+                        px-5
+                        py-4
+                        text-sm
+                        text-zinc-900
+                        shadow-inner
+                        outline-none
+                        backdrop-blur-xl
+                        transition
+                        placeholder:text-zinc-400
+                        focus:border-zinc-900/30
+                        focus:bg-white/80
+                        focus:ring-4
+                        focus:ring-purple-500/10
+                      "
+                    />
+                  </div>
+
+                  {/* ERRO */}
+
                   {error && (
                     <div
                       className="
@@ -415,6 +551,27 @@ function Login() {
                       {error}
                     </div>
                   )}
+
+                  {/* SUCESSO */}
+
+                  {success && (
+                    <div
+                      className="
+                        rounded-2xl
+                        border
+                        border-emerald-200
+                        bg-emerald-50/80
+                        px-4
+                        py-3
+                        text-sm
+                        text-emerald-600
+                      "
+                    >
+                      {success}
+                    </div>
+                  )}
+
+                  {/* BOTÃO */}
 
                   <button
                     type="submit"
@@ -441,95 +598,21 @@ function Login() {
                     "
                   >
                     {loading
-                      ? "Entrando..."
-                      : "Entrar"}
+                      ? "Criando conta..."
+                      : "Criar conta"}
                   </button>
                 </form>
 
-                {/* =============================================
-                    DIVISOR
-                ============================================= */}
+                {/* LOGIN MOBILE */}
 
-                <div className="my-7 flex items-center gap-4">
-                  <div className="h-px flex-1 bg-zinc-900/10" />
-
-                  <span
-                    className="
-                      text-[10px]
-                      font-semibold
-                      uppercase
-                      tracking-[0.25em]
-                      text-zinc-400
-                    "
-                  >
-                    ou
-                  </span>
-
-                  <div className="h-px flex-1 bg-zinc-900/10" />
-                </div>
-
-                {/* =============================================
-                    GOOGLE
-                ============================================= */}
-
-                <button
-                  type="button"
-                  onClick={handleGoogleLogin}
-                  className="
-                    flex
-                    w-full
-                    items-center
-                    justify-center
-                    gap-3
-                    rounded-full
-                    border
-                    border-zinc-900/10
-                    bg-white/65
-                    px-6
-                    py-4
-                    text-sm
-                    font-semibold
-                    text-zinc-800
-                    shadow-sm
-                    backdrop-blur-xl
-                    transition
-                    duration-300
-                    hover:-translate-y-0.5
-                    hover:bg-white
-                    hover:shadow-lg
-                  "
-                >
-                  <span
-                    className="
-                      flex
-                      h-6
-                      w-6
-                      items-center
-                      justify-center
-                      rounded-full
-                      bg-white
-                      text-sm
-                      font-bold
-                    "
-                  >
-                    G
-                  </span>
-
-                  Continuar com Google
-                </button>
-
-                {/* =============================================
-                    CADASTRO MOBILE
-                ============================================= */}
-
-                <div className="mt-8 text-center md:hidden">
+                <div className="mt-7 text-center md:hidden">
                   <p className="text-xs text-zinc-500">
-                    Ainda não possui uma conta?
+                    Já possui uma conta?
                   </p>
 
                   <button
                     type="button"
-                    onClick={handleRegister}
+                    onClick={handleLogin}
                     className="
                       mt-2
                       text-sm
@@ -539,7 +622,7 @@ function Login() {
                       underline-offset-4
                     "
                   >
-                    Cadastre-se
+                    Fazer login
                   </button>
                 </div>
 
@@ -552,4 +635,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default Register;

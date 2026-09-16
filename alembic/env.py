@@ -4,8 +4,10 @@ from alembic import context
 from sqlalchemy import create_engine, pool
 
 from app.core.config import get_settings
-from app.models.apartment import Apartment
 from app.database.database import Base
+
+from app.models.apartment import Apartment
+from app.models.google_account import GoogleAccount
 from app.models.maintenance import Maintenance
 from app.models.task import Task
 from app.models.user import User

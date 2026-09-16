@@ -211,7 +211,7 @@ function FilterSelect<T extends string>({
         <select
           value={value}
           onChange={(event) => onChange(event.target.value as T)}
-          className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-3.5 pr-9 text-sm font-medium text-slate-700 transition hover:border-slate-300 focus:border-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/10 sm:w-[170px]"
+          className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-3.5 pr-9 text-sm font-medium text-slate-700 transition hover:border-slate-300 focus:border-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/10 sm:w-42.5"
         >
           {options.map((option) => (
             <option key={option.value} value={option.value}>
@@ -603,7 +603,7 @@ function Tasks() {
      MENU DA TAREFA
   ======================================================= */
 
-  function TaskMenu({ task }: { task: Task }) {
+  function renderTaskMenu(task: Task) {
     return (
       <div
         className="relative shrink-0"
@@ -651,7 +651,7 @@ function Tasks() {
      CHECKBOX
   ======================================================= */
 
-  function TaskCheckbox({ task }: { task: Task }) {
+  function renderTaskCheckbox(task: Task) {
     return (
       <button
         type="button"
@@ -659,7 +659,7 @@ function Tasks() {
         aria-label={
           task.status === "concluida" ? "Reabrir tarefa" : "Concluir tarefa"
         }
-        className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+        className={`flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full border-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
           task.status === "concluida"
             ? "border-slate-900 bg-slate-900 text-white"
             : "border-slate-300 bg-white hover:border-slate-500"
@@ -689,7 +689,7 @@ function Tasks() {
 
   if (loading || redirecting) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-white via-slate-50 to-[#e8eefb]">
+      <main className="flex min-h-screen items-center justify-center bg-linear-to-br from-white via-slate-50 to-[#e8eefb]">
         <div className="flex flex-col items-center text-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900" />
 
@@ -708,12 +708,12 @@ function Tasks() {
   ======================================================= */
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-[#e8eefb] text-slate-900">
+    <div className="min-h-screen bg-linear-to-br from-white via-slate-50 to-[#e8eefb] text-slate-900">
       <div className="min-h-screen lg:flex">
         <DashboardSidebar />
 
         <main className="min-w-0 flex-1">
-          <div className="mx-auto max-w-[1380px] px-5 py-7 sm:px-8 lg:px-10 xl:px-12">
+          <div className="mx-auto max-w-345 px-5 py-7 sm:px-8 lg:px-10 xl:px-12">
             {/* =============================================
                 HEADER
             ============================================= */}
@@ -852,7 +852,7 @@ function Tasks() {
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
                         placeholder="Título, prédio ou apartamento"
-                        className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3.5 text-sm text-slate-700 transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/10 sm:w-[260px]"
+                        className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3.5 text-sm text-slate-700 transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/10 sm:w-65"
                       />
                     </div>
                   </label>
@@ -999,7 +999,7 @@ function Tasks() {
                           handleRescheduleTask(taskId, column.dropDate);
                         }
                       }}
-                      className={`flex min-h-[320px] flex-col rounded-2xl border p-4 shadow-[0_2px_10px_rgba(15,23,42,0.05)] backdrop-blur-sm transition duration-200 ${
+                      className={`flex min-h-80 flex-col rounded-2xl border p-4 shadow-[0_2px_10px_rgba(15,23,42,0.05)] backdrop-blur-sm transition duration-200 ${
                         isDropTarget
                           ? "border-slate-300 bg-white"
                           : "border-white/70 bg-white/90"
@@ -1034,7 +1034,7 @@ function Tasks() {
                       <div className="mt-4 flex-1 space-y-2">
                         {column.tasks.length === 0 ? (
                           <div
-                            className={`flex h-full min-h-[180px] flex-col items-center justify-center rounded-xl border border-dashed px-4 text-center transition ${
+                            className={`flex h-full min-h-45 flex-col items-center justify-center rounded-xl border border-dashed px-4 text-center transition ${
                               isDropTarget
                                 ? "border-slate-400 bg-slate-50"
                                 : "border-slate-200"
@@ -1068,7 +1068,7 @@ function Tasks() {
                               }`}
                             >
                               <div className="flex items-start gap-2.5">
-                                <TaskCheckbox task={task} />
+                                {renderTaskCheckbox(task)}
 
                                 <button
                                   type="button"
@@ -1096,10 +1096,10 @@ function Tasks() {
                                   )}
                                 </button>
 
-                                <TaskMenu task={task} />
+                                {renderTaskMenu(task)}
                               </div>
 
-                              <div className="mt-3 flex flex-wrap items-center gap-2 pl-[30px]">
+                              <div className="mt-3 flex flex-wrap items-center gap-2 pl-7.5">
                                 <span
                                   className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${getUrgencyPill(
                                     task.urgency,
@@ -1211,7 +1211,7 @@ function Tasks() {
                             key={task.id}
                             className="flex items-center gap-3 rounded-xl bg-slate-50/80 px-3 py-3 transition duration-200 hover:bg-slate-100/80 sm:px-4"
                           >
-                            <TaskCheckbox task={task} />
+                            {renderTaskCheckbox(task)}
 
                             <button
                               type="button"
@@ -1264,7 +1264,7 @@ function Tasks() {
                               {formatTime(task.scheduled_time)}
                             </span>
 
-                            <TaskMenu task={task} />
+                            {renderTaskMenu(task)}
                           </div>
                         ))}
                       </div>

@@ -2,8 +2,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.api import (
+    apartments,
     auth,
     calendar,
     dashboard,
@@ -13,7 +15,7 @@ from app.api import (
 )
 from app.core.config import get_settings
 from app.jobs.scheduler import start_scheduler, stop_scheduler
-from app.api import apartments
+
 
 settings = get_settings()
 
@@ -21,9 +23,7 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     start_scheduler()
-
     yield
-
     stop_scheduler()
 
 
@@ -34,6 +34,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+# =====================================================
+# SESSÃO
+# =====================================================
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.jwt_secret_key,
+)
+
+
+# =====================================================
+# CORS
+# =====================================================
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,6 +62,10 @@ app.add_middleware(
 )
 
 
+# =====================================================
+# ROTAS
+# =====================================================
+
 app.include_router(auth.router)
 app.include_router(tasks.router)
 app.include_router(dashboard.router)
@@ -55,6 +73,11 @@ app.include_router(calendar.router)
 app.include_router(notifications.router)
 app.include_router(maintenance.router)
 app.include_router(apartments.router)
+
+
+# =====================================================
+# SISTEMA
+# =====================================================
 
 @app.get(
     "/",
