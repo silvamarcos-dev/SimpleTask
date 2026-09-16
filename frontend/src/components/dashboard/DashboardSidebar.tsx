@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { getCurrentUser } from "../../services/user";
@@ -227,7 +227,22 @@ function DashboardSidebar() {
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dashboardExpanded, setDashboardExpanded] = useState(isDashboard);
+  const [wasDashboard, setWasDashboard] = useState(isDashboard);
   const [user, setUser] = useState<UserResponse | null>(null);
+
+  /*
+   * Ao entrar em uma rota do Dashboard, o submenu abre sozinho.
+   * Ajuste feito durante o render (e não em um efeito) para evitar
+   * a renderização extra que o setState dentro de useEffect provoca.
+   */
+
+  if (wasDashboard !== isDashboard) {
+    setWasDashboard(isDashboard);
+
+    if (isDashboard) {
+      setDashboardExpanded(true);
+    }
+  }
 
   const [desktopCollapsed, setDesktopCollapsed] = useState(() => {
     return localStorage.getItem("simple_task_sidebar_collapsed") === "true";
@@ -258,16 +273,6 @@ function DashboardSidebar() {
       mounted = false;
     };
   }, []);
-
-  /* =====================================================
-     KEEP DASHBOARD OPEN
-  ===================================================== */
-
-  useEffect(() => {
-    if (isDashboard) {
-      setDashboardExpanded(true);
-    }
-  }, [isDashboard]);
 
   /* =====================================================
      PERSIST DESKTOP SIDEBAR
@@ -374,19 +379,17 @@ function DashboardSidebar() {
      NAV BUTTON
   ===================================================== */
 
-  function NavButton({
-    label,
-    path: target,
-    active,
-    icon: Icon,
-    collapsed,
-  }: {
-    label: string;
-    path: string;
-    active: boolean;
-    icon: (props: IconProps) => JSX.Element;
-    collapsed: boolean;
-  }) {
+  function renderNavItem(
+    item: {
+      label: string;
+      path: string;
+      active: boolean;
+      icon: (props: IconProps) => ReactElement;
+    },
+    collapsed: boolean,
+  ) {
+    const { label, path: target, active, icon: Icon } = item;
+
     return (
       <button
         type="button"
@@ -410,7 +413,7 @@ function DashboardSidebar() {
      SHARED CONTENT
   ===================================================== */
 
-  function SidebarContent({ collapsed }: { collapsed: boolean }) {
+  function renderSidebarContent(collapsed: boolean) {
     return (
       <>
         {/* BRAND */}
@@ -539,7 +542,7 @@ function DashboardSidebar() {
 
           <div className="mt-1 space-y-1">
             {mainItems.map((item) => (
-              <NavButton key={item.path} {...item} collapsed={collapsed} />
+              <div key={item.path}>{renderNavItem(item, collapsed)}</div>
             ))}
           </div>
 
@@ -557,7 +560,7 @@ function DashboardSidebar() {
 
           <div className="space-y-1">
             {secondaryItems.map((item) => (
-              <NavButton key={item.path} {...item} collapsed={collapsed} />
+              <div key={item.path}>{renderNavItem(item, collapsed)}</div>
             ))}
           </div>
         </nav>
@@ -709,7 +712,7 @@ function DashboardSidebar() {
           </svg>
         </button>
 
-        <SidebarContent collapsed={false} />
+        {renderSidebarContent(false)}
       </aside>
 
       {/* =====================================================
@@ -745,7 +748,7 @@ function DashboardSidebar() {
           </svg>
         </button>
 
-        <SidebarContent collapsed={desktopCollapsed} />
+        {renderSidebarContent(desktopCollapsed)}
       </aside>
     </>
   );
