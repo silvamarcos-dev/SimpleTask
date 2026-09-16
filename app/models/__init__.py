@@ -1,24 +1,15 @@
-from app.models.maintenance import (
-    Maintenance,
-    MaintenancePriority,
-    MaintenanceStatus,
-    ProviderType,
-)
-from app.models.task import (
-    Task,
-    TaskStatus,
-    UrgencyLevel,
-)
+from app.models.apartment import Apartment
+from app.models.google_account import GoogleAccount
+from app.models.maintenance import Maintenance
+from app.models.task import Task
+from app.models.task_occurrence import TaskOccurrence
 from app.models.user import User
 
-
 __all__ = [
+    "Apartment",
+    "GoogleAccount",
     "Maintenance",
-    "MaintenancePriority",
-    "MaintenanceStatus",
-    "ProviderType",
     "Task",
-    "TaskStatus",
-    "UrgencyLevel",
+    "TaskOccurrence",
     "User",
 ]

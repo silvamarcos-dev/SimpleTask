@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
 
+import app.models
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
