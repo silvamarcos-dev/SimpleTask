@@ -3,7 +3,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { getTodayDashboard } from "../services/dashboard";
-import { deleteTask, getTasks, updateTask } from "../services/tasks";
+import {
+  completeTaskOccurrence,
+  deleteTask,
+  getTasks,
+  reopenTaskOccurrence,
+} from "../services/tasks";
 import { getCurrentUser } from "../services/user";
 
 import DashboardSidebar from "../components/dashboard/DashboardSidebar";
@@ -27,6 +32,7 @@ function getLocalDateString(date: Date = new Date()): string {
 function addDays(date: Date, days: number): Date {
   const result = new Date(date);
   result.setDate(result.getDate() + days);
+
   return result;
 }
 
@@ -53,6 +59,7 @@ function formatToday(): string {
 
 function formatDateShort(dateString: string): string {
   const [, month, day] = dateString.split("-");
+
   return `${day}/${month}`;
 }
 
@@ -94,11 +101,16 @@ function getGreetingEmoji(): string {
 
 function getWeekDays(): Date[] {
   const monday = getStartOfWeek();
-  return Array.from({ length: 7 }, (_, index) => addDays(monday, index));
+
+  return Array.from({ length: 7 }, (_, index) =>
+    addDays(monday, index),
+  );
 }
 
 function getWeekdayLabel(date: Date): string {
-  const label = new Intl.DateTimeFormat("pt-BR", { weekday: "short" })
+  const label = new Intl.DateTimeFormat("pt-BR", {
+    weekday: "short",
+  })
     .format(date)
     .replace(".", "");
 
@@ -220,7 +232,12 @@ type TaskMenuProps = {
   onDelete: () => void;
 };
 
-function TaskMenu({ isOpen, onToggle, onEdit, onDelete }: TaskMenuProps) {
+function TaskMenu({
+  isOpen,
+  onToggle,
+  onEdit,
+  onDelete,
+}: TaskMenuProps) {
   return (
     <div className="relative shrink-0">
       <button
@@ -229,7 +246,12 @@ function TaskMenu({ isOpen, onToggle, onEdit, onDelete }: TaskMenuProps) {
         aria-label="Opções da tarefa"
         className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 transition hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+        >
           <circle cx="12" cy="5" r="1.6" />
           <circle cx="12" cy="12" r="1.6" />
           <circle cx="12" cy="19" r="1.6" />
@@ -299,6 +321,7 @@ function SectionCard({
           className="group inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-blue-600 transition hover:text-blue-700"
         >
           {actionLabel}
+
           <span className="transition-transform duration-200 group-hover:translate-x-0.5">
             →
           </span>
@@ -318,13 +341,20 @@ function Dashboard() {
   const navigate = useNavigate();
 
   const [user, setUser] = useState<UserResponse | null>(null);
-  const [dashboard, setDashboard] = useState<DashboardSummary | null>(null);
+  const [dashboard, setDashboard] =
+    useState<DashboardSummary | null>(null);
+
   const [tasks, setTasks] = useState<Task[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [redirecting, setRedirecting] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
-  const [selectedDate, setSelectedDate] = useState(getLocalDateString());
+
+  const [openMenuId, setOpenMenuId] =
+    useState<number | null>(null);
+
+  const [selectedDate, setSelectedDate] =
+    useState(getLocalDateString());
 
   /* =======================================================
      LOAD DATA
@@ -343,7 +373,10 @@ function Dashboard() {
         setDashboard(summary);
         setTasks(allTasks);
       } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
+        if (
+          axios.isAxiosError(error) &&
+          error.response?.status === 401
+        ) {
           setRedirecting(true);
           return;
         }
@@ -383,22 +416,46 @@ function Dashboard() {
     }
 
     window.addEventListener("click", handleClickOutside);
-    return () => window.removeEventListener("click", handleClickOutside);
+
+    return () => {
+      window.removeEventListener("click", handleClickOutside);
+    };
   }, [openMenuId]);
 
   /* =======================================================
-     TOGGLE TASK
+     TOGGLE TASK OCCURRENCE
   ======================================================= */
 
   async function handleToggleTask(task: Task) {
-    const newStatus = task.status === "concluida" ? "pendente" : "concluida";
+    const isCompleted = task.status === "concluida";
 
     try {
-      const updatedTask = await updateTask(task.id, { status: newStatus });
+      if (isCompleted) {
+        await reopenTaskOccurrence(
+          task.id,
+          task.scheduled_date,
+        );
+      } else {
+        await completeTaskOccurrence(
+          task.id,
+          task.scheduled_date,
+        );
+      }
 
       setTasks((currentTasks) =>
         currentTasks.map((currentTask) =>
-          currentTask.id === updatedTask.id ? updatedTask : currentTask,
+          currentTask.id === task.id &&
+          currentTask.scheduled_date === task.scheduled_date
+            ? {
+                ...currentTask,
+                status: isCompleted
+                  ? "pendente"
+                  : "concluida",
+                completed_at: isCompleted
+                  ? null
+                  : new Date().toISOString(),
+              }
+            : currentTask,
         ),
       );
 
@@ -415,6 +472,7 @@ function Dashboard() {
 
   function handleEditTask(task: Task) {
     setOpenMenuId(null);
+
     navigate(`/tasks/${task.id}/edit`);
   }
 
@@ -437,7 +495,9 @@ function Dashboard() {
       await deleteTask(task.id);
 
       setTasks((currentTasks) =>
-        currentTasks.filter((currentTask) => currentTask.id !== task.id),
+        currentTasks.filter(
+          (currentTask) => currentTask.id !== task.id,
+        ),
       );
 
       const updatedSummary = await getTodayDashboard();
@@ -451,8 +511,12 @@ function Dashboard() {
      BASIC DATA
   ======================================================= */
 
-  const completedPercentage = dashboard?.completion_percentage ?? 0;
-  const firstName = user?.name.split(" ")[0] ?? "Usuário";
+  const completedPercentage =
+    dashboard?.completion_percentage ?? 0;
+
+  const firstName =
+    user?.name.split(" ")[0] ?? "Usuário";
+
   const todayString = getLocalDateString(new Date());
 
   /* =======================================================
@@ -461,17 +525,27 @@ function Dashboard() {
 
   const todayTasks = useMemo(() => {
     return tasks
-      .filter((task) => task.scheduled_date === todayString)
+      .filter(
+        (task) => task.scheduled_date === todayString,
+      )
       .sort((a, b) => {
-        if (a.status === "concluida" && b.status !== "concluida") {
+        if (
+          a.status === "concluida" &&
+          b.status !== "concluida"
+        ) {
           return 1;
         }
 
-        if (a.status !== "concluida" && b.status === "concluida") {
+        if (
+          a.status !== "concluida" &&
+          b.status === "concluida"
+        ) {
           return -1;
         }
 
-        return (a.scheduled_time ?? "99:99").localeCompare(
+        return (
+          a.scheduled_time ?? "99:99"
+        ).localeCompare(
           b.scheduled_time ?? "99:99",
         );
       });
@@ -483,13 +557,21 @@ function Dashboard() {
 
   const upcomingTasks = useMemo(() => {
     return tasks
-      .filter((task) => task.scheduled_date > todayString)
+      .filter(
+        (task) => task.scheduled_date > todayString,
+      )
       .sort((a, b) => {
-        if (a.scheduled_date !== b.scheduled_date) {
-          return a.scheduled_date.localeCompare(b.scheduled_date);
+        if (
+          a.scheduled_date !== b.scheduled_date
+        ) {
+          return a.scheduled_date.localeCompare(
+            b.scheduled_date,
+          );
         }
 
-        return (a.scheduled_time ?? "99:99").localeCompare(
+        return (
+          a.scheduled_time ?? "99:99"
+        ).localeCompare(
           b.scheduled_time ?? "99:99",
         );
       })
@@ -500,13 +582,21 @@ function Dashboard() {
      WEEK
   ======================================================= */
 
-  const weekDays = useMemo(() => getWeekDays(), []);
+  const weekDays = useMemo(
+    () => getWeekDays(),
+    [],
+  );
 
   const selectedDayTasks = useMemo(() => {
     return tasks
-      .filter((task) => task.scheduled_date === selectedDate)
+      .filter(
+        (task) =>
+          task.scheduled_date === selectedDate,
+      )
       .sort((a, b) =>
-        (a.scheduled_time ?? "99:99").localeCompare(
+        (
+          a.scheduled_time ?? "99:99"
+        ).localeCompare(
           b.scheduled_time ?? "99:99",
         ),
       );
@@ -571,6 +661,7 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-[#e8eefb] text-slate-900">
       <div className="min-h-screen lg:flex">
+
         {/* =================================================
             SIDEBAR
         ================================================= */}
@@ -582,12 +673,15 @@ function Dashboard() {
         ================================================= */}
 
         <main className="min-w-0 flex-1">
+
           {/* =================================================
               HEADER
           ================================================= */}
 
           <header className="relative overflow-hidden">
+
             {/* Imagem de arquitetura no canto superior direito */}
+
             <div className="pointer-events-none absolute right-0 top-0 hidden h-[230px] w-[46%] xl:block">
               <img
                 src={architectureImage}
@@ -597,13 +691,17 @@ function Dashboard() {
               />
 
               <div className="absolute inset-0 bg-gradient-to-r from-[#f4f7fd] via-[#f4f7fd]/70 to-transparent" />
+
               <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#eef2fb] to-transparent" />
             </div>
 
             <div className="relative mx-auto max-w-[1380px] px-5 pb-2 pt-7 sm:px-8 lg:px-10 xl:px-12">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+
                 <div>
-                  <p className="text-sm text-slate-500">{formatToday()}</p>
+                  <p className="text-sm text-slate-500">
+                    {formatToday()}
+                  </p>
 
                   <p className="mt-3 text-[2.1rem] font-light leading-none tracking-[-0.03em] text-slate-400 sm:text-[2.4rem]">
                     {getGreeting()}
@@ -611,7 +709,11 @@ function Dashboard() {
 
                   <h1 className="mt-2 flex items-center gap-3 text-[2.6rem] font-semibold leading-none tracking-[-0.045em] text-slate-900 sm:text-[3.1rem]">
                     {firstName}.
-                    <span aria-hidden="true" className="text-[2.2rem]">
+
+                    <span
+                      aria-hidden="true"
+                      className="text-[2.2rem]"
+                    >
                       {getGreetingEmoji()}
                     </span>
                   </h1>
@@ -631,7 +733,10 @@ function Dashboard() {
                     onClick={() => navigate("/tasks/new")}
                     className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-6 text-[15px] font-medium text-white shadow-[0_10px_25px_rgba(15,23,42,0.18)] transition duration-200 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:w-auto"
                   >
-                    <span className="text-lg font-light leading-none">+</span>
+                    <span className="text-lg font-light leading-none">
+                      +
+                    </span>
+
                     Nova tarefa
                   </button>
                 </div>
@@ -640,11 +745,13 @@ function Dashboard() {
           </header>
 
           <div className="mx-auto max-w-[1380px] px-5 pb-10 pt-6 sm:px-8 lg:px-10 xl:px-12">
+
             {/* =================================================
                 METRICS
             ================================================= */}
 
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
               <MetricCard
                 label="Total de tarefas"
                 value={String(dashboard.total)}
@@ -738,11 +845,13 @@ function Dashboard() {
             ================================================= */}
 
             <div className="mt-5 grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_370px]">
+
               {/* =============================================
                   LEFT COLUMN
               ============================================= */}
 
               <div className="min-w-0 space-y-5">
+
                 {/* TAREFAS DE HOJE */}
 
                 <SectionCard
@@ -776,7 +885,9 @@ function Dashboard() {
 
                       <button
                         type="button"
-                        onClick={() => navigate("/tasks/new")}
+                        onClick={() =>
+                          navigate("/tasks/new")
+                        }
                         className="mt-1 text-xs font-medium text-blue-600 hover:text-blue-700"
                       >
                         Criar a primeira tarefa
@@ -785,14 +896,17 @@ function Dashboard() {
                   ) : (
                     todayTasks.map((task) => (
                       <div
-                        key={task.id}
+                        key={`${task.id}-${task.scheduled_date}`}
                         className="flex items-center gap-3 rounded-xl bg-slate-50/80 px-3 py-3 transition duration-200 hover:bg-slate-100/80 sm:px-4"
                       >
+
                         {/* CHECKBOX */}
 
                         <button
                           type="button"
-                          onClick={() => handleToggleTask(task)}
+                          onClick={() =>
+                            handleToggleTask(task)
+                          }
                           aria-label={
                             task.status === "concluida"
                               ? "Reabrir tarefa"
@@ -824,7 +938,9 @@ function Dashboard() {
 
                         <button
                           type="button"
-                          onClick={() => handleEditTask(task)}
+                          onClick={() =>
+                            handleEditTask(task)
+                          }
                           className="min-w-0 flex-1 text-left"
                         >
                           <p
@@ -840,8 +956,14 @@ function Dashboard() {
                           {task.building && (
                             <p className="mt-0.5 truncate text-xs text-slate-400">
                               {task.building}
-                              {task.block ? ` • Bloco ${task.block}` : ""}
-                              {task.apartment ? ` • AP ${task.apartment}` : ""}
+
+                              {task.block
+                                ? ` • Bloco ${task.block}`
+                                : ""}
+
+                              {task.apartment
+                                ? ` • AP ${task.apartment}`
+                                : ""}
                             </p>
                           )}
                         </button>
@@ -858,6 +980,7 @@ function Dashboard() {
                               task.urgency,
                             )}`}
                           />
+
                           {getUrgencyLabel(task.urgency)}
                         </span>
 
@@ -865,16 +988,28 @@ function Dashboard() {
                           {formatTime(task.scheduled_time)}
                         </span>
 
-                        <div onClick={(event) => event.stopPropagation()}>
+                        <div
+                          onClick={(event) =>
+                            event.stopPropagation()
+                          }
+                        >
                           <TaskMenu
-                            isOpen={openMenuId === task.id}
+                            isOpen={
+                              openMenuId === task.id
+                            }
                             onToggle={() =>
                               setOpenMenuId(
-                                openMenuId === task.id ? null : task.id,
+                                openMenuId === task.id
+                                  ? null
+                                  : task.id,
                               )
                             }
-                            onEdit={() => handleEditTask(task)}
-                            onDelete={() => handleDeleteTask(task)}
+                            onEdit={() =>
+                              handleEditTask(task)
+                            }
+                            onDelete={() =>
+                              handleDeleteTask(task)
+                            }
                           />
                         </div>
                       </div>
@@ -903,7 +1038,13 @@ function Dashboard() {
                           strokeWidth="1.8"
                           strokeLinecap="round"
                         >
-                          <rect x="3" y="4" width="18" height="17" rx="2" />
+                          <rect
+                            x="3"
+                            y="4"
+                            width="18"
+                            height="17"
+                            rx="2"
+                          />
                           <path d="M16 2v4M8 2v4M3 10h18" />
                         </svg>
                       </div>
@@ -914,7 +1055,9 @@ function Dashboard() {
 
                       <button
                         type="button"
-                        onClick={() => navigate("/tasks/new")}
+                        onClick={() =>
+                          navigate("/tasks/new")
+                        }
                         className="mt-1 text-xs font-medium text-blue-600 hover:text-blue-700"
                       >
                         Planejar os próximos dias
@@ -923,14 +1066,16 @@ function Dashboard() {
                   ) : (
                     upcomingTasks.map((task) => (
                       <div
-                        key={task.id}
+                        key={`${task.id}-${task.scheduled_date}`}
                         className="flex items-center gap-3 rounded-xl px-3 py-3 transition duration-200 hover:bg-slate-50 sm:px-4"
                       >
                         <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 border-slate-300 bg-white" />
 
                         <button
                           type="button"
-                          onClick={() => handleEditTask(task)}
+                          onClick={() =>
+                            handleEditTask(task)
+                          }
                           className="min-w-0 flex-1 text-left"
                         >
                           <p className="truncate text-[15px] font-medium text-slate-900">
@@ -940,14 +1085,22 @@ function Dashboard() {
                           {task.building && (
                             <p className="mt-0.5 truncate text-xs text-slate-400">
                               {task.building}
-                              {task.block ? ` • Bloco ${task.block}` : ""}
-                              {task.apartment ? ` • AP ${task.apartment}` : ""}
+
+                              {task.block
+                                ? ` • Bloco ${task.block}`
+                                : ""}
+
+                              {task.apartment
+                                ? ` • AP ${task.apartment}`
+                                : ""}
                             </p>
                           )}
                         </button>
 
                         <span className="shrink-0 text-sm font-medium text-slate-500">
-                          {formatDateShort(task.scheduled_date)}
+                          {formatDateShort(
+                            task.scheduled_date,
+                          )}
                         </span>
 
                         <span
@@ -960,19 +1113,32 @@ function Dashboard() {
                               task.urgency,
                             )}`}
                           />
+
                           {getUrgencyLabel(task.urgency)}
                         </span>
 
-                        <div onClick={(event) => event.stopPropagation()}>
+                        <div
+                          onClick={(event) =>
+                            event.stopPropagation()
+                          }
+                        >
                           <TaskMenu
-                            isOpen={openMenuId === task.id}
+                            isOpen={
+                              openMenuId === task.id
+                            }
                             onToggle={() =>
                               setOpenMenuId(
-                                openMenuId === task.id ? null : task.id,
+                                openMenuId === task.id
+                                  ? null
+                                  : task.id,
                               )
                             }
-                            onEdit={() => handleEditTask(task)}
-                            onDelete={() => handleDeleteTask(task)}
+                            onEdit={() =>
+                              handleEditTask(task)
+                            }
+                            onDelete={() =>
+                              handleDeleteTask(task)
+                            }
                           />
                         </div>
                       </div>
@@ -986,6 +1152,7 @@ function Dashboard() {
               ============================================= */}
 
               <div className="space-y-5">
+
                 {/* CALENDÁRIO DA SEMANA */}
 
                 <section className="rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_2px_10px_rgba(15,23,42,0.05)] backdrop-blur-sm sm:p-6">
@@ -996,10 +1163,13 @@ function Dashboard() {
 
                     <button
                       type="button"
-                      onClick={() => navigate("/calendar")}
+                      onClick={() =>
+                        navigate("/calendar")
+                      }
                       className="group inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-blue-600 transition hover:text-blue-700"
                     >
                       Ver agenda
+
                       <span className="transition-transform duration-200 group-hover:translate-x-0.5">
                         →
                       </span>
@@ -1008,19 +1178,28 @@ function Dashboard() {
 
                   <div className="mt-4 grid grid-cols-7 gap-1.5">
                     {weekDays.map((day) => {
-                      const dayString = getLocalDateString(day);
-                      const isSelected = dayString === selectedDate;
-                      const isToday = dayString === todayString;
+                      const dayString =
+                        getLocalDateString(day);
+
+                      const isSelected =
+                        dayString === selectedDate;
+
+                      const isToday =
+                        dayString === todayString;
 
                       const dayTasks = tasks.filter(
-                        (task) => task.scheduled_date === dayString,
+                        (task) =>
+                          task.scheduled_date ===
+                          dayString,
                       );
 
                       return (
                         <button
                           key={dayString}
                           type="button"
-                          onClick={() => setSelectedDate(dayString)}
+                          onClick={() =>
+                            setSelectedDate(dayString)
+                          }
                           aria-pressed={isSelected}
                           className={`flex flex-col items-center gap-1 rounded-xl px-1 py-2.5 transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
                             isSelected
@@ -1030,7 +1209,9 @@ function Dashboard() {
                         >
                           <span
                             className={`text-[11px] font-medium ${
-                              isSelected ? "text-slate-300" : "text-slate-400"
+                              isSelected
+                                ? "text-slate-300"
+                                : "text-slate-400"
                             }`}
                           >
                             {getWeekdayLabel(day)}
@@ -1070,9 +1251,11 @@ function Dashboard() {
                     ) : (
                       selectedDayTasks.map((task) => (
                         <button
-                          key={task.id}
+                          key={`${task.id}-${task.scheduled_date}`}
                           type="button"
-                          onClick={() => handleEditTask(task)}
+                          onClick={() =>
+                            handleEditTask(task)
+                          }
                           className="flex w-full items-center gap-3 text-left"
                         >
                           <span
@@ -1092,7 +1275,9 @@ function Dashboard() {
                           </span>
 
                           <span className="shrink-0 text-sm text-slate-400">
-                            {formatTime(task.scheduled_time)}
+                            {formatTime(
+                              task.scheduled_time,
+                            )}
                           </span>
                         </button>
                       ))
@@ -1104,7 +1289,9 @@ function Dashboard() {
 
                 <button
                   type="button"
-                  onClick={() => navigate("/apartments")}
+                  onClick={() =>
+                    navigate("/apartments")
+                  }
                   className="group relative block w-full overflow-hidden rounded-2xl border border-white/70 bg-gradient-to-br from-[#eef2fb] to-[#dfe7f8] p-6 text-left shadow-[0_2px_10px_rgba(15,23,42,0.05)] transition duration-300 hover:shadow-[0_14px_34px_rgba(15,23,42,0.10)]"
                 >
                   <img
@@ -1123,7 +1310,9 @@ function Dashboard() {
 
                     <div className="mt-6 h-px w-10 bg-slate-300" />
 
-                    <p className="mt-3 text-xs text-slate-500">Simple Task</p>
+                    <p className="mt-3 text-xs text-slate-500">
+                      Simple Task
+                    </p>
                   </div>
                 </button>
               </div>

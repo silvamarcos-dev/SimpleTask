@@ -19,6 +19,7 @@ from app.database.database import Base
 
 
 if TYPE_CHECKING:
+    from app.models.task_occurrence import TaskOccurrence
     from app.models.user import User
 
 
@@ -160,6 +161,11 @@ class Task(Base):
 
     user: Mapped["User"] = relationship(
         back_populates="tasks",
+    )
+
+    occurrences: Mapped[list["TaskOccurrence"]] = relationship(
+        back_populates="task",
+        cascade="all, delete-orphan",
     )
 
     # =====================================================
