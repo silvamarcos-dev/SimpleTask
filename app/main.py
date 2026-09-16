@@ -84,10 +84,7 @@ app.include_router(apartments.router)
 # SISTEMA
 # =====================================================
 
-@app.get(
-    "/",
-    tags=["Sistema"],
-)
+@app.get("/", tags=["Sistema"])
 def root() -> dict[str, str]:
     return {
         "message": "Simple Task API",
@@ -96,10 +93,7 @@ def root() -> dict[str, str]:
     }
 
 
-@app.get(
-    "/health",
-    tags=["Sistema"],
-)
+@app.get("/health", tags=["Sistema"])
 def health_check() -> dict[str, str]:
     return {
         "status": "healthy",
