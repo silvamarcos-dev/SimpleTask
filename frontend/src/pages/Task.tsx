@@ -66,6 +66,11 @@ function formatDayHeading(dateString: string): string {
   return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 
+function formatShortDate(dateString: string): string {
+  const [, month, day] = dateString.split("-");
+  return `${day}/${month}`;
+}
+
 function formatWeekRange(start: Date): string {
   const end = addDays(start, 6);
 
@@ -151,6 +156,7 @@ function isMaintenanceTask(task: Task): boolean {
    FILTER TYPES
 ========================================================= */
 
+type ViewMode = "lista" | "kanban";
 type UrgencyFilter = "todas" | Task["urgency"];
 type PeriodFilter = "todas" | "hoje" | "semana" | "atrasadas";
 type StatusFilter = "todas" | "pendente" | "concluida";
@@ -245,6 +251,8 @@ function Tasks() {
   const [redirecting, setRedirecting] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
+  const [view, setView] = useState<ViewMode>("lista");
+
   const [search, setSearch] = useState("");
   const [urgency, setUrgency] = useState<UrgencyFilter>("todas");
   const [period, setPeriod] = useState<PeriodFilter>("todas");
@@ -252,6 +260,9 @@ function Tasks() {
   const [kind, setKind] = useState<KindFilter>("todas");
 
   const [weekStart, setWeekStart] = useState(() => getStartOfWeek());
+
+  const [draggingId, setDraggingId] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
 
   /* =======================================================
      LOAD
@@ -352,6 +363,43 @@ function Tasks() {
     }
   }
 
+  /* =======================================================
+     REAGENDAR (KANBAN)
+  ======================================================= */
+
+  async function handleRescheduleTask(taskId: number, newDate: string) {
+    const task = tasks.find((item) => item.id === taskId);
+
+    if (!task || task.scheduled_date === newDate) {
+      return;
+    }
+
+    const previousTasks = tasks;
+
+    setTasks((currentTasks) =>
+      currentTasks.map((currentTask) =>
+        currentTask.id === taskId
+          ? { ...currentTask, scheduled_date: newDate }
+          : currentTask,
+      ),
+    );
+
+    try {
+      const updatedTask = await updateTask(taskId, {
+        scheduled_date: newDate,
+      });
+
+      setTasks((currentTasks) =>
+        currentTasks.map((currentTask) =>
+          currentTask.id === updatedTask.id ? updatedTask : currentTask,
+        ),
+      );
+    } catch {
+      setTasks(previousTasks);
+      setError("Não foi possível reagendar a tarefa.");
+    }
+  }
+
   function clearFilters() {
     setSearch("");
     setUrgency("todas");
@@ -362,16 +410,33 @@ function Tasks() {
   }
 
   /* =======================================================
-     FILTERING
+     DATAS DE REFERÊNCIA
   ======================================================= */
 
   const todayString = getLocalDateString();
+  const tomorrowString = getLocalDateString(addDays(new Date(), 1));
+
+  const nextWeekStart = useMemo(
+    () => addDays(getStartOfWeek(), 7),
+    [],
+  );
+
+  const nextWeekStartString = getLocalDateString(nextWeekStart);
+  const nextWeekEndString = getLocalDateString(addDays(nextWeekStart, 6));
 
   const weekStartString = getLocalDateString(weekStart);
   const weekEndString = getLocalDateString(addDays(weekStart, 6));
 
+  /* =======================================================
+     FILTERING
+
+     O filtro de período só vale na visão em lista: o kanban
+     tem as próprias faixas de data nas colunas.
+  ======================================================= */
+
   const filteredTasks = useMemo(() => {
     const term = search.trim().toLowerCase();
+    const usePeriod = view === "lista";
 
     return tasks
       .filter((task) => {
@@ -391,27 +456,34 @@ function Tasks() {
           return false;
         }
 
-        if (period === "hoje" && task.scheduled_date !== todayString) {
-          return false;
-        }
+        if (usePeriod) {
+          if (period === "hoje" && task.scheduled_date !== todayString) {
+            return false;
+          }
 
-        if (
-          period === "semana" &&
-          (task.scheduled_date < weekStartString ||
-            task.scheduled_date > weekEndString)
-        ) {
-          return false;
-        }
+          if (
+            period === "semana" &&
+            (task.scheduled_date < weekStartString ||
+              task.scheduled_date > weekEndString)
+          ) {
+            return false;
+          }
 
-        if (
-          period === "atrasadas" &&
-          !(task.scheduled_date < todayString && task.status !== "concluida")
-        ) {
-          return false;
+          if (
+            period === "atrasadas" &&
+            !(task.scheduled_date < todayString && task.status !== "concluida")
+          ) {
+            return false;
+          }
         }
 
         if (term) {
-          const haystack = [task.title, task.building, task.block, task.apartment]
+          const haystack = [
+            task.title,
+            task.building,
+            task.block,
+            task.apartment,
+          ]
             .filter(Boolean)
             .join(" ")
             .toLowerCase();
@@ -434,6 +506,7 @@ function Tasks() {
       });
   }, [
     tasks,
+    view,
     search,
     urgency,
     status,
@@ -445,7 +518,7 @@ function Tasks() {
   ]);
 
   /* =======================================================
-     GROUP BY DAY
+     GROUP BY DAY (LISTA)
   ======================================================= */
 
   const groupedTasks = useMemo(() => {
@@ -461,6 +534,54 @@ function Tasks() {
   }, [filteredTasks]);
 
   /* =======================================================
+     COLUNAS DO KANBAN
+  ======================================================= */
+
+  const kanbanColumns = useMemo(() => {
+    return [
+      {
+        id: "hoje",
+        title: "Hoje",
+        subtitle: formatShortDate(todayString),
+        dropDate: todayString,
+        accent: "bg-slate-900",
+        tasks: filteredTasks.filter(
+          (task) => task.scheduled_date === todayString,
+        ),
+      },
+      {
+        id: "amanha",
+        title: "Amanhã",
+        subtitle: formatShortDate(tomorrowString),
+        dropDate: tomorrowString,
+        accent: "bg-blue-500",
+        tasks: filteredTasks.filter(
+          (task) => task.scheduled_date === tomorrowString,
+        ),
+      },
+      {
+        id: "proxima-semana",
+        title: "Semana que vem",
+        subtitle: formatWeekRange(nextWeekStart),
+        dropDate: nextWeekStartString,
+        accent: "bg-violet-500",
+        tasks: filteredTasks.filter(
+          (task) =>
+            task.scheduled_date >= nextWeekStartString &&
+            task.scheduled_date <= nextWeekEndString,
+        ),
+      },
+    ];
+  }, [
+    filteredTasks,
+    todayString,
+    tomorrowString,
+    nextWeekStart,
+    nextWeekStartString,
+    nextWeekEndString,
+  ]);
+
+  /* =======================================================
      COUNTERS
   ======================================================= */
 
@@ -469,18 +590,101 @@ function Tasks() {
   ).length;
 
   const completedCount = filteredTasks.length - pendingCount;
-
   const maintenanceCount = filteredTasks.filter(isMaintenanceTask).length;
 
   const hasActiveFilters =
     search.trim() !== "" ||
     urgency !== "todas" ||
-    period !== "todas" ||
     status !== "todas" ||
-    kind !== "todas";
+    kind !== "todas" ||
+    (view === "lista" && period !== "todas");
 
   /* =======================================================
-     LOADING / ERROR
+     MENU DA TAREFA
+  ======================================================= */
+
+  function TaskMenu({ task }: { task: Task }) {
+    return (
+      <div
+        className="relative shrink-0"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={() =>
+            setOpenMenuId(openMenuId === task.id ? null : task.id)
+          }
+          aria-label="Opções da tarefa"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 transition hover:bg-slate-200/60 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="5" r="1.6" />
+            <circle cx="12" cy="12" r="1.6" />
+            <circle cx="12" cy="19" r="1.6" />
+          </svg>
+        </button>
+
+        {openMenuId === task.id && (
+          <div className="absolute right-0 top-9 z-30 w-32 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-[0_12px_30px_rgba(15,23,42,0.12)]">
+            <button
+              type="button"
+              onClick={() => handleEditTask(task)}
+              className="w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+            >
+              Editar
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleDeleteTask(task)}
+              className="w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-red-500 transition hover:bg-red-50"
+            >
+              Excluir
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* =======================================================
+     CHECKBOX
+  ======================================================= */
+
+  function TaskCheckbox({ task }: { task: Task }) {
+    return (
+      <button
+        type="button"
+        onClick={() => handleToggleTask(task)}
+        aria-label={
+          task.status === "concluida" ? "Reabrir tarefa" : "Concluir tarefa"
+        }
+        className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+          task.status === "concluida"
+            ? "border-slate-900 bg-slate-900 text-white"
+            : "border-slate-300 bg-white hover:border-slate-500"
+        }`}
+      >
+        {task.status === "concluida" && (
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M5 12l4 4L19 6" />
+          </svg>
+        )}
+      </button>
+    );
+  }
+
+  /* =======================================================
+     LOADING / REDIRECT
   ======================================================= */
 
   if (loading || redirecting) {
@@ -524,18 +728,76 @@ function Tasks() {
                   {filteredTasks.length}{" "}
                   {filteredTasks.length === 1 ? "tarefa" : "tarefas"} ·{" "}
                   {pendingCount} pendentes · {completedCount} concluídas
-                  {maintenanceCount > 0 && ` · ${maintenanceCount} de manutenção`}
+                  {maintenanceCount > 0 &&
+                    ` · ${maintenanceCount} de manutenção`}
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => navigate("/tasks/new")}
-                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-6 text-[15px] font-medium text-white shadow-[0_10px_25px_rgba(15,23,42,0.18)] transition duration-200 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:w-auto"
-              >
-                <span className="text-lg font-light leading-none">+</span>
-                Nova tarefa
-              </button>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                {/* VIEW TOGGLE */}
+
+                <div className="inline-flex h-11 shrink-0 items-center rounded-full border border-slate-200 bg-white p-1">
+                  <button
+                    type="button"
+                    onClick={() => setView("lista")}
+                    aria-pressed={view === "lista"}
+                    className={`inline-flex h-9 items-center gap-2 rounded-full px-4 text-sm font-medium transition duration-200 ${
+                      view === "lista"
+                        ? "bg-slate-900 text-white"
+                        : "text-slate-500 hover:text-slate-900"
+                    }`}
+                  >
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    >
+                      <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+                    </svg>
+                    Lista
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setView("kanban")}
+                    aria-pressed={view === "kanban"}
+                    className={`inline-flex h-9 items-center gap-2 rounded-full px-4 text-sm font-medium transition duration-200 ${
+                      view === "kanban"
+                        ? "bg-slate-900 text-white"
+                        : "text-slate-500 hover:text-slate-900"
+                    }`}
+                  >
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="4" width="5" height="16" rx="1.5" />
+                      <rect x="9.5" y="4" width="5" height="11" rx="1.5" />
+                      <rect x="16" y="4" width="5" height="14" rx="1.5" />
+                    </svg>
+                    Quadro
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => navigate("/tasks/new")}
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-6 text-[15px] font-medium text-white shadow-[0_10px_25px_rgba(15,23,42,0.18)] transition duration-200 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:w-auto"
+                >
+                  <span className="text-lg font-light leading-none">+</span>
+                  Nova tarefa
+                </button>
+              </div>
             </header>
 
             {/* =============================================
@@ -602,12 +864,14 @@ function Tasks() {
                     onChange={setUrgency}
                   />
 
-                  <FilterSelect
-                    label="Período"
-                    value={period}
-                    options={periodOptions}
-                    onChange={setPeriod}
-                  />
+                  {view === "lista" && (
+                    <FilterSelect
+                      label="Período"
+                      value={period}
+                      options={periodOptions}
+                      onChange={setPeriod}
+                    />
+                  )}
 
                   <FilterSelect
                     label="Tipo"
@@ -637,11 +901,13 @@ function Tasks() {
 
               {/* WEEK STEPPER */}
 
-              {period === "semana" && (
+              {view === "lista" && period === "semana" && (
                 <div className="mt-4 flex items-center gap-3 border-t border-slate-100 pt-4">
                   <button
                     type="button"
-                    onClick={() => setWeekStart((current) => addDays(current, -7))}
+                    onClick={() =>
+                      setWeekStart((current) => addDays(current, -7))
+                    }
                     aria-label="Semana anterior"
                     className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
                   >
@@ -673,7 +939,9 @@ function Tasks() {
 
                   <button
                     type="button"
-                    onClick={() => setWeekStart((current) => addDays(current, 7))}
+                    onClick={() =>
+                      setWeekStart((current) => addDays(current, 7))
+                    }
                     aria-label="Próxima semana"
                     className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
                   >
@@ -703,206 +971,308 @@ function Tasks() {
             </section>
 
             {/* =============================================
-                LIST
+                KANBAN
             ============================================= */}
 
-            <section className="mt-5 space-y-5">
-              {groupedTasks.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-2xl border border-white/70 bg-white/90 px-6 py-16 text-center shadow-[0_2px_10px_rgba(15,23,42,0.05)] backdrop-blur-sm">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-400">
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+            {view === "kanban" ? (
+              <section className="mt-5 grid gap-4 lg:grid-cols-3">
+                {kanbanColumns.map((column) => {
+                  const isDropTarget = dropTarget === column.id;
+
+                  return (
+                    <div
+                      key={column.id}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        setDropTarget(column.id);
+                      }}
+                      onDragLeave={() => setDropTarget(null)}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        setDropTarget(null);
+
+                        const taskId = Number(
+                          event.dataTransfer.getData("text/plain"),
+                        );
+
+                        if (Number.isFinite(taskId)) {
+                          handleRescheduleTask(taskId, column.dropDate);
+                        }
+                      }}
+                      className={`flex min-h-[320px] flex-col rounded-2xl border p-4 shadow-[0_2px_10px_rgba(15,23,42,0.05)] backdrop-blur-sm transition duration-200 ${
+                        isDropTarget
+                          ? "border-slate-300 bg-white"
+                          : "border-white/70 bg-white/90"
+                      }`}
                     >
-                      <rect x="3" y="4" width="18" height="17" rx="3" />
-                      <path d="M16 2v4M8 2v4M3 10h18" />
-                    </svg>
-                  </div>
+                      {/* COLUMN HEADER */}
 
-                  <p className="mt-4 text-[15px] font-medium text-slate-700">
-                    {hasActiveFilters
-                      ? "Nenhuma tarefa com esses filtros"
-                      : "Você ainda não tem tarefas"}
-                  </p>
+                      <div className="flex items-start justify-between gap-3 px-1">
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className={`h-2 w-2 rounded-full ${column.accent}`}
+                          />
 
-                  <button
-                    type="button"
-                    onClick={
-                      hasActiveFilters ? clearFilters : () => navigate("/tasks/new")
-                    }
-                    className="mt-2 text-sm font-medium text-blue-600 transition hover:text-blue-700"
-                  >
-                    {hasActiveFilters ? "Limpar filtros" : "Criar a primeira tarefa"}
-                  </button>
-                </div>
-              ) : (
-                groupedTasks.map(([date, dayTasks]) => (
-                  <div
-                    key={date}
-                    className="rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_2px_10px_rgba(15,23,42,0.05)] backdrop-blur-sm sm:p-6"
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-slate-900">
-                        {formatDayHeading(date)}
-                      </h2>
+                          <div>
+                            <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-slate-900">
+                              {column.title}
+                            </h2>
 
-                      <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-slate-100 px-2 text-xs font-semibold text-slate-500">
-                        {dayTasks.length}
-                      </span>
-                    </div>
+                            <p className="mt-0.5 text-xs text-slate-400">
+                              {column.subtitle}
+                            </p>
+                          </div>
+                        </div>
 
-                    <div className="mt-3 space-y-2">
-                      {dayTasks.map((task) => (
-                        <div
-                          key={task.id}
-                          className="flex items-center gap-3 rounded-xl bg-slate-50/80 px-3 py-3 transition duration-200 hover:bg-slate-100/80 sm:px-4"
-                        >
-                          {/* CHECKBOX */}
+                        <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-slate-100 px-2 text-xs font-semibold text-slate-500">
+                          {column.tasks.length}
+                        </span>
+                      </div>
 
-                          <button
-                            type="button"
-                            onClick={() => handleToggleTask(task)}
-                            aria-label={
-                              task.status === "concluida"
-                                ? "Reabrir tarefa"
-                                : "Concluir tarefa"
-                            }
-                            className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
-                              task.status === "concluida"
-                                ? "border-slate-900 bg-slate-900 text-white"
-                                : "border-slate-300 bg-white hover:border-slate-500"
+                      {/* CARDS */}
+
+                      <div className="mt-4 flex-1 space-y-2">
+                        {column.tasks.length === 0 ? (
+                          <div
+                            className={`flex h-full min-h-[180px] flex-col items-center justify-center rounded-xl border border-dashed px-4 text-center transition ${
+                              isDropTarget
+                                ? "border-slate-400 bg-slate-50"
+                                : "border-slate-200"
                             }`}
                           >
-                            {task.status === "concluida" && (
-                              <svg
-                                width="11"
-                                height="11"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="3.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M5 12l4 4L19 6" />
-                              </svg>
-                            )}
-                          </button>
-
-                          {/* TITLE */}
-
-                          <button
-                            type="button"
-                            onClick={() => handleEditTask(task)}
-                            className="min-w-0 flex-1 text-left"
-                          >
-                            <span className="flex min-w-0 items-center gap-2">
-                              <span
-                                className={`truncate text-[15px] font-medium ${
-                                  task.status === "concluida"
-                                    ? "text-slate-400 line-through"
-                                    : "text-slate-900"
-                                }`}
-                              >
-                                {task.title}
-                              </span>
-
-                              {isMaintenanceTask(task) && (
-                                <span className="shrink-0 rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-700">
-                                  Manutenção
-                                </span>
-                              )}
-                            </span>
-
-                            {task.building && (
-                              <p className="mt-0.5 truncate text-xs text-slate-400">
-                                {task.building}
-                                {task.block ? ` • Bloco ${task.block}` : ""}
-                                {task.apartment ? ` • AP ${task.apartment}` : ""}
-                              </p>
-                            )}
-                          </button>
-
-                          {/* URGENCY */}
-
-                          <span
-                            className={`hidden shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium sm:inline-flex ${getUrgencyPill(
-                              task.urgency,
-                            )}`}
-                          >
-                            <span
-                              className={`h-1.5 w-1.5 rounded-full ${getUrgencyDot(
-                                task.urgency,
-                              )}`}
-                            />
-                            {getUrgencyLabel(task.urgency)}
-                          </span>
-
-                          <span className="hidden w-14 shrink-0 text-right text-sm font-medium text-slate-500 sm:block">
-                            {formatTime(task.scheduled_time)}
-                          </span>
-
-                          {/* MENU */}
-
-                          <div
-                            className="relative shrink-0"
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setOpenMenuId(
-                                  openMenuId === task.id ? null : task.id,
-                                )
-                              }
-                              aria-label="Opções da tarefa"
-                              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 transition hover:bg-slate-200/60 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+                            <p className="text-sm text-slate-400">
+                              {isDropTarget
+                                ? "Solte aqui para reagendar"
+                                : "Nenhuma tarefa"}
+                            </p>
+                          </div>
+                        ) : (
+                          column.tasks.map((task) => (
+                            <article
+                              key={task.id}
+                              draggable
+                              onDragStart={(event) => {
+                                event.dataTransfer.setData(
+                                  "text/plain",
+                                  String(task.id),
+                                );
+                                event.dataTransfer.effectAllowed = "move";
+                                setDraggingId(task.id);
+                              }}
+                              onDragEnd={() => {
+                                setDraggingId(null);
+                                setDropTarget(null);
+                              }}
+                              className={`cursor-grab rounded-xl bg-slate-50/80 p-3 transition duration-200 hover:bg-slate-100/80 active:cursor-grabbing ${
+                                draggingId === task.id ? "opacity-40" : ""
+                              }`}
                             >
-                              <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                              >
-                                <circle cx="12" cy="5" r="1.6" />
-                                <circle cx="12" cy="12" r="1.6" />
-                                <circle cx="12" cy="19" r="1.6" />
-                              </svg>
-                            </button>
+                              <div className="flex items-start gap-2.5">
+                                <TaskCheckbox task={task} />
 
-                            {openMenuId === task.id && (
-                              <div className="absolute right-0 top-9 z-30 w-32 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-[0_12px_30px_rgba(15,23,42,0.12)]">
                                 <button
                                   type="button"
                                   onClick={() => handleEditTask(task)}
-                                  className="w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+                                  className="min-w-0 flex-1 text-left"
                                 >
-                                  Editar
+                                  <span
+                                    className={`block text-sm font-medium ${
+                                      task.status === "concluida"
+                                        ? "text-slate-400 line-through"
+                                        : "text-slate-900"
+                                    }`}
+                                  >
+                                    {task.title}
+                                  </span>
+
+                                  {task.building && (
+                                    <span className="mt-0.5 block truncate text-xs text-slate-400">
+                                      {task.building}
+                                      {task.block ? ` • Bloco ${task.block}` : ""}
+                                      {task.apartment
+                                        ? ` • AP ${task.apartment}`
+                                        : ""}
+                                    </span>
+                                  )}
                                 </button>
 
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteTask(task)}
-                                  className="w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-red-500 transition hover:bg-red-50"
-                                >
-                                  Excluir
-                                </button>
+                                <TaskMenu task={task} />
                               </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+
+                              <div className="mt-3 flex flex-wrap items-center gap-2 pl-[30px]">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${getUrgencyPill(
+                                    task.urgency,
+                                  )}`}
+                                >
+                                  <span
+                                    className={`h-1.5 w-1.5 rounded-full ${getUrgencyDot(
+                                      task.urgency,
+                                    )}`}
+                                  />
+                                  {getUrgencyLabel(task.urgency)}
+                                </span>
+
+                                {isMaintenanceTask(task) && (
+                                  <span className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-700">
+                                    Manutenção
+                                  </span>
+                                )}
+
+                                <span className="ml-auto text-xs font-medium text-slate-500">
+                                  {column.id === "proxima-semana"
+                                    ? formatShortDate(task.scheduled_date)
+                                    : formatTime(task.scheduled_time)}
+                                </span>
+                              </div>
+                            </article>
+                          ))
+                        )}
+                      </div>
+
+                      {/* ADD */}
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate(`/tasks/new?date=${column.dropDate}`)
+                        }
+                        className="mt-3 w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-400 transition hover:bg-slate-50 hover:text-slate-700"
+                      >
+                        + Adicionar tarefa
+                      </button>
                     </div>
+                  );
+                })}
+              </section>
+            ) : (
+              /* =============================================
+                  LISTA
+              ============================================= */
+
+              <section className="mt-5 space-y-5">
+                {groupedTasks.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center rounded-2xl border border-white/70 bg-white/90 px-6 py-16 text-center shadow-[0_2px_10px_rgba(15,23,42,0.05)] backdrop-blur-sm">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-400">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="3" y="4" width="18" height="17" rx="3" />
+                        <path d="M16 2v4M8 2v4M3 10h18" />
+                      </svg>
+                    </div>
+
+                    <p className="mt-4 text-[15px] font-medium text-slate-700">
+                      {hasActiveFilters
+                        ? "Nenhuma tarefa com esses filtros"
+                        : "Você ainda não tem tarefas"}
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={
+                        hasActiveFilters
+                          ? clearFilters
+                          : () => navigate("/tasks/new")
+                      }
+                      className="mt-2 text-sm font-medium text-blue-600 transition hover:text-blue-700"
+                    >
+                      {hasActiveFilters
+                        ? "Limpar filtros"
+                        : "Criar a primeira tarefa"}
+                    </button>
                   </div>
-                ))
-              )}
-            </section>
+                ) : (
+                  groupedTasks.map(([date, dayTasks]) => (
+                    <div
+                      key={date}
+                      className="rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_2px_10px_rgba(15,23,42,0.05)] backdrop-blur-sm sm:p-6"
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-slate-900">
+                          {formatDayHeading(date)}
+                        </h2>
+
+                        <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-slate-100 px-2 text-xs font-semibold text-slate-500">
+                          {dayTasks.length}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 space-y-2">
+                        {dayTasks.map((task) => (
+                          <div
+                            key={task.id}
+                            className="flex items-center gap-3 rounded-xl bg-slate-50/80 px-3 py-3 transition duration-200 hover:bg-slate-100/80 sm:px-4"
+                          >
+                            <TaskCheckbox task={task} />
+
+                            <button
+                              type="button"
+                              onClick={() => handleEditTask(task)}
+                              className="min-w-0 flex-1 text-left"
+                            >
+                              <span className="flex min-w-0 items-center gap-2">
+                                <span
+                                  className={`truncate text-[15px] font-medium ${
+                                    task.status === "concluida"
+                                      ? "text-slate-400 line-through"
+                                      : "text-slate-900"
+                                  }`}
+                                >
+                                  {task.title}
+                                </span>
+
+                                {isMaintenanceTask(task) && (
+                                  <span className="shrink-0 rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-700">
+                                    Manutenção
+                                  </span>
+                                )}
+                              </span>
+
+                              {task.building && (
+                                <p className="mt-0.5 truncate text-xs text-slate-400">
+                                  {task.building}
+                                  {task.block ? ` • Bloco ${task.block}` : ""}
+                                  {task.apartment
+                                    ? ` • AP ${task.apartment}`
+                                    : ""}
+                                </p>
+                              )}
+                            </button>
+
+                            <span
+                              className={`hidden shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium sm:inline-flex ${getUrgencyPill(
+                                task.urgency,
+                              )}`}
+                            >
+                              <span
+                                className={`h-1.5 w-1.5 rounded-full ${getUrgencyDot(
+                                  task.urgency,
+                                )}`}
+                              />
+                              {getUrgencyLabel(task.urgency)}
+                            </span>
+
+                            <span className="hidden w-14 shrink-0 text-right text-sm font-medium text-slate-500 sm:block">
+                              {formatTime(task.scheduled_time)}
+                            </span>
+
+                            <TaskMenu task={task} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </section>
+            )}
           </div>
         </main>
       </div>
