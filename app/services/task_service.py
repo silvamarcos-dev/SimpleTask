@@ -31,26 +31,6 @@ class TaskService:
         task: Task,
         base_date: date | None = None,
     ) -> date | None:
-        """
-        Calcula a próxima ocorrência da tarefa.
-
-        Exemplos:
-
-        Diária + 1:
-            16/09 -> 17/09
-
-        Diária + 2:
-            16/09 -> 18/09
-
-        Semanal + 1:
-            16/09 -> 23/09
-
-        Semanal + 2:
-            16/09 -> 30/09
-
-        Mensal + 1:
-            16/09 -> 16/10
-        """
 
         if not task.is_recurring:
             return None
@@ -104,52 +84,85 @@ class TaskService:
             return []
 
         # -------------------------------------------------
-        # TAREFA RECORRENTE
+        # RECORRÊNCIA INVÁLIDA
         # -------------------------------------------------
 
         if task.recurrence_interval is None:
             return []
 
+        if task.recurrence_interval <= 0:
+            return []
+
         if task.recurrence_type == RecurrenceType.NONE:
             return []
 
-        dates: list[date] = []
+        # -------------------------------------------------
+        # ENCONTRAR PRIMEIRA OCORRÊNCIA DO INTERVALO
+        # -------------------------------------------------
 
         current_date = task.scheduled_date
 
-        # -------------------------------------------------
-        # AVANÇAR ATÉ O INÍCIO DO PERÍODO
-        # -------------------------------------------------
+        # Segurança para evitar loop infinito.
+        max_iterations = 10000
+        iterations = 0
 
         while current_date < start_date:
 
             current_date = TaskService._calculate_next_recurrence_date(
-                task,
+                task=task,
                 base_date=current_date,
             )
 
             if current_date is None:
                 return []
 
+            iterations += 1
+
+            if iterations >= max_iterations:
+                return []
+
         # -------------------------------------------------
-        # GERAR TODAS AS OCORRÊNCIAS DO PERÍODO
+        # GERAR OCORRÊNCIAS
         # -------------------------------------------------
+
+        dates: list[date] = []
 
         while current_date <= end_date:
 
             dates.append(current_date)
 
             next_date = TaskService._calculate_next_recurrence_date(
-                task,
+                task=task,
                 base_date=current_date,
             )
 
             if next_date is None:
                 break
 
+            if next_date <= current_date:
+                break
+
             current_date = next_date
 
         return dates
+
+    # =====================================================
+    # BUSCAR OCORRÊNCIA
+    # =====================================================
+
+    @staticmethod
+    def get_occurrence(
+        db: Session,
+        task: Task,
+        occurrence_date: date,
+    ) -> TaskOccurrence | None:
+
+        statement = select(TaskOccurrence).where(
+            TaskOccurrence.task_id == task.id,
+            TaskOccurrence.occurrence_date == occurrence_date,
+        )
+
+        return db.scalar(statement)
 
     # =====================================================
     # GARANTIR OCORRÊNCIA
@@ -162,12 +175,11 @@ class TaskService:
         occurrence_date: date,
     ) -> TaskOccurrence:
 
-        statement = select(TaskOccurrence).where(
-            TaskOccurrence.task_id == task.id,
-            TaskOccurrence.occurrence_date == occurrence_date,
+        occurrence = TaskService.get_occurrence(
+            db=db,
+            task=task,
+            occurrence_date=occurrence_date,
         )
-
-        occurrence = db.scalar(statement)
 
         if occurrence is not None:
             return occurrence
@@ -185,6 +197,9 @@ class TaskService:
 
     # =====================================================
     # SINCRONIZAR OCORRÊNCIAS
+    #
+    # Usado quando realmente queremos persistir
+    # ocorrências no banco.
     # =====================================================
 
     @staticmethod
@@ -279,7 +294,7 @@ class TaskService:
 
         task.next_recurrence_date = (
             TaskService._calculate_next_recurrence_date(
-                task
+                task=task,
             )
         )
 
@@ -302,24 +317,6 @@ class TaskService:
         statement = select(Task).where(
             Task.id == task_id,
             Task.user_id == user.id,
-        )
-
-        return db.scalar(statement)
-
-    # =====================================================
-    # BUSCAR OCORRÊNCIA
-    # =====================================================
-
-    @staticmethod
-    def get_occurrence(
-        db: Session,
-        task: Task,
-        occurrence_date: date,
-    ) -> TaskOccurrence | None:
-
-        statement = select(TaskOccurrence).where(
-            TaskOccurrence.task_id == task.id,
-            TaskOccurrence.occurrence_date == occurrence_date,
         )
 
         return db.scalar(statement)
@@ -368,6 +365,16 @@ class TaskService:
 
     # =====================================================
     # LISTAGEM COM RECORRÊNCIA
+    #
+    # IMPORTANTE:
+    #
+    # Este método NÃO cria ocorrências no banco apenas
+    # porque estamos consultando a lista.
+    #
+    # Se a ocorrência já existe, usamos ela.
+    #
+    # Se não existe, criamos um objeto temporário em memória
+    # para representar a ocorrência.
     # =====================================================
 
     @staticmethod
@@ -377,6 +384,9 @@ class TaskService:
         start_date: date,
         end_date: date,
     ) -> list[tuple[Task, date, TaskOccurrence]]:
+
+        if start_date > end_date:
+            return []
 
         statement = select(Task).where(
             Task.user_id == user.id,
@@ -403,10 +413,39 @@ class TaskService:
 
             for occurrence_date in occurrence_dates:
 
-                occurrence = TaskService.get_or_create_occurrence(
+                occurrence = TaskService.get_occurrence(
                     db=db,
                     task=task,
                     occurrence_date=occurrence_date,
+                )
+
+                # -------------------------------------------------
+                # OCORRÊNCIA JÁ EXISTE
+                # -------------------------------------------------
+
+                if occurrence is not None:
+
+                    result.append(
+                        (
+                            task,
+                            occurrence_date,
+                            occurrence,
+                        )
+                    )
+
+                    continue
+
+                # -------------------------------------------------
+                # OCORRÊNCIA AINDA NÃO EXISTE
+                #
+                # NÃO SALVAMOS NO BANCO.
+                # Apenas representamos a ocorrência em memória.
+                # -------------------------------------------------
+
+                occurrence = TaskOccurrence(
+                    task_id=task.id,
+                    occurrence_date=occurrence_date,
+                    status=TaskOccurrenceStatus.PENDING,
                 )
 
                 result.append(
@@ -416,8 +455,6 @@ class TaskService:
                         occurrence,
                     )
                 )
-
-        db.commit()
 
         result.sort(
             key=lambda item: (
@@ -465,7 +502,7 @@ class TaskService:
 
             task.next_recurrence_date = (
                 TaskService._calculate_next_recurrence_date(
-                    task
+                    task=task,
                 )
             )
 
@@ -490,7 +527,7 @@ class TaskService:
         return task
 
     # =====================================================
-    # CONCLUIR UMA OCORRÊNCIA
+    # CONCLUIR OCORRÊNCIA
     # =====================================================
 
     @staticmethod
@@ -517,7 +554,7 @@ class TaskService:
         return occurrence
 
     # =====================================================
-    # REABRIR UMA OCORRÊNCIA
+    # REABRIR OCORRÊNCIA
     # =====================================================
 
     @staticmethod

@@ -1,7 +1,15 @@
 from datetime import date, timedelta
+
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    status,
+)
+
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user
@@ -63,14 +71,27 @@ def create_task(
 def list_tasks(
     db: DbSession,
     current_user: CurrentUser,
+
     scheduled_date: Annotated[
         date | None,
         Query(),
     ] = None,
+
+    start_date: Annotated[
+        date | None,
+        Query(),
+    ] = None,
+
+    end_date: Annotated[
+        date | None,
+        Query(),
+    ] = None,
+
     urgency: Annotated[
         UrgencyLevel | None,
         Query(),
     ] = None,
+
     task_status: Annotated[
         TaskStatus | None,
         Query(),
@@ -78,72 +99,66 @@ def list_tasks(
 ) -> list[TaskResponse]:
 
     # =====================================================
-    # BUSCA POR UMA DATA ESPECÍFICA
+    # VALIDAÇÃO DO INTERVALO
     # =====================================================
 
     if scheduled_date is not None:
 
-        occurrences = TaskService.list_with_recurrence(
-            db=db,
-            user=current_user,
-            start_date=scheduled_date,
-            end_date=scheduled_date,
+        # Não faz sentido misturar uma data exata
+        # com intervalo.
+
+        if start_date is not None or end_date is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Use scheduled_date ou start_date/end_date, "
+                    "não os dois ao mesmo tempo."
+                ),
+            )
+
+        start_date = scheduled_date
+        end_date = scheduled_date
+
+    else:
+
+        # -------------------------------------------------
+        # LISTAGEM PADRÃO
+        #
+        # 30 dias para trás
+        # 30 dias para frente
+        #
+        # Evita gerar centenas de ocorrências.
+        # -------------------------------------------------
+
+        if start_date is None and end_date is None:
+
+            today = date.today()
+
+            start_date = today - timedelta(
+                days=30
+            )
+
+            end_date = today + timedelta(
+                days=30
+            )
+
+        elif start_date is None:
+
+            start_date = end_date
+
+        elif end_date is None:
+
+            end_date = start_date
+
+    if start_date > end_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="start_date não pode ser maior que end_date.",
         )
 
-        result = []
-
-        for task, occurrence_date, occurrence in occurrences:
-
-            if urgency is not None:
-                if task.urgency != urgency:
-                    continue
-
-            if task_status is not None:
-                if occurrence.status.value != task_status.value:
-                    continue
-
-            task_data = {
-                "id": task.id,
-                "title": task.title,
-                "description": task.description,
-                "urgency": task.urgency,
-
-                # O status pertence à ocorrência.
-                "status": TaskStatus(
-                    occurrence.status.value
-                ),
-
-                "scheduled_date": occurrence_date,
-                "scheduled_time": task.scheduled_time,
-
-                "building": task.building,
-                "block": task.block,
-                "apartment": task.apartment,
-
-                "is_recurring": task.is_recurring,
-                "recurrence_type": task.recurrence_type,
-                "recurrence_interval": task.recurrence_interval,
-                "next_recurrence_date": task.next_recurrence_date,
-
-                "completed_at": occurrence.completed_at,
-
-                "user_id": task.user_id,
-                "created_at": task.created_at,
-                "updated_at": task.updated_at,
-            }
-
-            result.append(task_data)
-
-        return result
-
     # =====================================================
-    # LISTAGEM GERAL
+    # BUSCAR OCORRÊNCIAS
     # =====================================================
-
-    today = date.today()
-
-    start_date = today - timedelta(days=365)
-    end_date = today + timedelta(days=365)
 
     occurrences = TaskService.list_with_recurrence(
         db=db,
@@ -156,13 +171,29 @@ def list_tasks(
 
     for task, occurrence_date, occurrence in occurrences:
 
+        # =================================================
+        # FILTRO DE URGÊNCIA
+        # =================================================
+
         if urgency is not None:
+
             if task.urgency != urgency:
                 continue
 
+        # =================================================
+        # FILTRO DE STATUS
+        #
+        # O status exibido é o da ocorrência.
+        # =================================================
+
         if task_status is not None:
+
             if occurrence.status.value != task_status.value:
                 continue
+
+        # =================================================
+        # RESPOSTA
+        # =================================================
 
         task_data = {
             "id": task.id,
@@ -170,7 +201,6 @@ def list_tasks(
             "description": task.description,
             "urgency": task.urgency,
 
-            # O status pertence à ocorrência.
             "status": TaskStatus(
                 occurrence.status.value
             ),
@@ -212,6 +242,7 @@ def complete_task_occurrence(
     db: DbSession,
     current_user: CurrentUser,
 ):
+
     task = TaskService.get_by_id(
         db,
         current_user,
@@ -264,6 +295,7 @@ def reopen_task_occurrence(
     db: DbSession,
     current_user: CurrentUser,
 ):
+
     task = TaskService.get_by_id(
         db,
         current_user,
