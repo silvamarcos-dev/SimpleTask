@@ -12,12 +12,16 @@ from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.core.dependencies import get_current_user
 from app.database.database import get_db
 from app.models.user import User
 from app.schemas.auth import TokenResponse
 from app.schemas.user import UserCreate, UserResponse
 from app.services.auth_service import AuthService
+
+
+settings = get_settings()
 
 
 router = APIRouter(
@@ -50,7 +54,6 @@ def register(
     user_data: UserCreate,
     db: DbSession,
 ) -> UserResponse:
-
     return AuthService.register(
         db,
         user_data,
@@ -72,7 +75,6 @@ def login(
     ],
     db: DbSession,
 ) -> TokenResponse:
-
     access_token = AuthService.login(
         db,
         form_data.username,
@@ -94,7 +96,6 @@ def login(
 def google_login(
     request: Request,
 ) -> RedirectResponse:
-
     (
         authorization_url,
         state,
@@ -108,6 +109,10 @@ def google_login(
         url=authorization_url,
     )
 
+
+# =====================================================
+# CALLBACK GOOGLE
+# =====================================================
 
 @router.get(
     "/google/callback",
@@ -129,9 +134,9 @@ def google_callback(
         None,
     )
 
-    # =====================================================
+    # =================================================
     # VALIDAR STATE
-    # =====================================================
+    # =================================================
 
     if session_state != state:
         raise HTTPException(
@@ -139,9 +144,9 @@ def google_callback(
             detail="Estado OAuth inválido.",
         )
 
-    # =====================================================
+    # =================================================
     # VALIDAR CODE VERIFIER
-    # =====================================================
+    # =================================================
 
     if code_verifier is None:
         raise HTTPException(
@@ -149,9 +154,9 @@ def google_callback(
             detail="Code verifier OAuth ausente.",
         )
 
-    # =====================================================
+    # =================================================
     # AUTENTICAR COM GOOGLE
-    # =====================================================
+    # =================================================
 
     access_token = AuthService.login_with_google(
         db=db,
@@ -160,11 +165,11 @@ def google_callback(
         code_verifier=code_verifier,
     )
 
-    # =====================================================
+    # =================================================
     # REDIRECIONAR PARA O FRONTEND
-    # =====================================================
+    # =================================================
 
-    frontend_url = "http://localhost:5173"
+    frontend_url = settings.frontend_url.rstrip("/")
 
     return RedirectResponse(
         url=(
@@ -186,5 +191,5 @@ def google_callback(
 def get_me(
     current_user: CurrentUser,
 ) -> UserResponse:
-
     return current_user
+

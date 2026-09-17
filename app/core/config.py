@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     google_client_secret: str
     google_redirect_uri: str
 
+    frontend_url: str = "http://localhost:5173"
+
     reminder_hour: int = 18
     reminder_minute: int = 0
 
@@ -32,3 +34,4 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
