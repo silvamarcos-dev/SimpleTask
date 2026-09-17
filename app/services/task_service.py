@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import date, datetime, timedelta, timezone
 
 from dateutil.relativedelta import relativedelta
@@ -115,7 +117,10 @@ class TaskService:
 
         current_date = task.scheduled_date
 
-        # Avança até chegar no início do período.
+        # -------------------------------------------------
+        # AVANÇAR ATÉ O INÍCIO DO PERÍODO
+        # -------------------------------------------------
+
         while current_date < start_date:
 
             current_date = TaskService._calculate_next_recurrence_date(
@@ -126,7 +131,10 @@ class TaskService:
             if current_date is None:
                 return []
 
-        # Gera todas as ocorrências dentro do período.
+        # -------------------------------------------------
+        # GERAR TODAS AS OCORRÊNCIAS DO PERÍODO
+        # -------------------------------------------------
+
         while current_date <= end_date:
 
             dates.append(current_date)
