@@ -5,6 +5,10 @@ import { useNavigate } from "react-router-dom";
 import { login } from "../services/auth";
 import { saveToken } from "../lib/authStorage";
 
+const apiBaseUrl =
+  import.meta.env.VITE_API_URL ||
+  "http://127.0.0.1:8000";
+
 function Login() {
   const navigate = useNavigate();
 
@@ -38,8 +42,7 @@ function Login() {
   }
 
   function handleGoogleLogin() {
-    window.location.href =
-      "http://localhost:8000/auth/google";
+    window.location.href = `${apiBaseUrl}/auth/google`;
   }
 
   function handleRegister() {
@@ -142,7 +145,6 @@ function Login() {
           />
 
           <div className="relative grid min-h-155 md:grid-cols-2">
-
             {/* =================================================
                 LADO ESQUERDO
             ================================================= */}
@@ -266,7 +268,6 @@ function Login() {
               "
             >
               <div className="w-full max-w-md">
-
                 <div className="mb-8">
                   <p
                     className="
@@ -542,7 +543,6 @@ function Login() {
                     Cadastre-se
                   </button>
                 </div>
-
               </div>
             </section>
           </div>
