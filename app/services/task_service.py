@@ -1,6 +1,7 @@
+
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 from dateutil.relativedelta import relativedelta
 from fastapi import HTTPException, status
@@ -96,6 +97,7 @@ class TaskService:
         db: Session,
         department_id: int,
     ) -> Department:
+
         department = db.get(
             Department,
             department_id,
@@ -625,10 +627,23 @@ class TaskService:
                     )
                 )
 
+        # -------------------------------------------------
+        # ORDENAÇÃO
+        #
+        # scheduled_time é datetime.time quando existe.
+        # Para tarefas sem horário, usamos time.max.
+        #
+        # Isso evita comparar:
+        #
+        # datetime.time < str
+        #
+        # e coloca tarefas sem horário no final do dia.
+        # -------------------------------------------------
+
         result.sort(
             key=lambda item: (
                 item[1],
-                item[0].scheduled_time or "99:99",
+                item[0].scheduled_time or time.max,
                 item[0].created_at,
             )
         )
@@ -823,3 +838,4 @@ class TaskService:
 
         db.delete(task)
         db.commit()
+

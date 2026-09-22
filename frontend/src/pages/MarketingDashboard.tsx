@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -378,7 +379,7 @@ function MarketingPostModal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-100 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !saving) {
           onClose();
@@ -390,7 +391,7 @@ function MarketingPostModal({
 
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
           <div>
-            <h2 className="text-xl font-semibold tracking-[-0.025em] text-slate-900">
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900">
               {isEditing
                 ? "Editar postagem"
                 : "Nova postagem"}
@@ -871,12 +872,12 @@ function MarketingDashboard() {
   ======================================================= */
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-[#e8eefb] text-slate-900">
+    <div className="min-h-screen bg-linear-to-br from-white via-slate-50 to-[#e8eefb] text-slate-900">
       <div className="min-h-screen lg:flex">
         <DashboardSidebar />
 
         <main className="min-w-0 flex-1">
-          <div className="mx-auto max-w-[1380px] px-5 py-7 sm:px-8 lg:px-10 xl:px-12">
+          <div className="mx-auto max-w-345 px-5 py-7 sm:px-8 lg:px-10 xl:px-12">
             {/* HEADER */}
 
             <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">

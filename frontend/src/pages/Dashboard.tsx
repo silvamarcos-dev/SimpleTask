@@ -723,7 +723,7 @@ function Dashboard() {
     !dashboard
   ) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-white via-slate-50 to-blue-50 px-4">
+      <main className="flex min-h-screen items-center justify-center bg-linear-to-brrom-white via-slate-50 to-blue-50 px-4">
         <div className="w-full max-w-md rounded-2xl border border-white/70 bg-white/90 p-8 text-center shadow-[0_8px_40px_rgba(15,23,42,0.08)]">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-lg font-bold text-red-500">
             !
@@ -760,7 +760,7 @@ function Dashboard() {
     <>
       <Onboarding />
 
-      <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-[#e8eefb] text-slate-900">
+      <div className="min-h-screen bg-linear-to-br from-white via-slate-50 to-[#e8eefb] text-slate-900">
         <div className="min-h-screen lg:flex">
           {/* =================================================
               SIDEBAR
@@ -780,7 +780,7 @@ function Dashboard() {
             <header className="relative overflow-hidden">
               {/* Imagem de arquitetura no canto superior direito */}
 
-              <div className="pointer-events-none absolute right-0 top-0 hidden h-[230px] w-[46%] xl:block">
+              <div className="pointer-events-none absolute right-0 top-0 hidden h-57.5 w-[46%] xl:block">
                 <img
                   src={architectureImage}
                   alt=""
@@ -788,12 +788,12 @@ function Dashboard() {
                   className="h-full w-full object-cover"
                 />
 
-                <div className="absolute inset-0 bg-gradient-to-r from-[#f4f7fd] via-[#f4f7fd]/70 to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-r from-[#f4f7fd] via-[#f4f7fd]/70 to-transparent" />
 
-                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#eef2fb] to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-[#eef2fb] to-transparent" />
               </div>
 
-              <div className="relative mx-auto max-w-[1380px] px-5 pb-2 pt-7 sm:px-8 lg:px-10 xl:px-12">
+              <div className="relative mx-auto max-w-345 px-5 pb-2 pt-7 sm:px-8 lg:px-10 xl:px-12">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <p className="text-sm text-slate-500">
@@ -821,7 +821,7 @@ function Dashboard() {
                   </div>
 
                   <div className="flex flex-col items-start gap-6 lg:items-end lg:pt-10">
-                    <p className="hidden max-w-[210px] text-right text-[11px] font-medium leading-5 tracking-[0.14em] text-slate-400 xl:block">
+                    <p className="hidden max-w-52.5 text-right text-[11px] font-medium leading-5 tracking-[0.14em] text-slate-400 xl:block">
                       Organização torna grandes resultados possíveis.
                     </p>
 
@@ -844,7 +844,7 @@ function Dashboard() {
               </div>
             </header>
 
-            <div className="mx-auto max-w-[1380px] px-5 pb-10 pt-6 sm:px-8 lg:px-10 xl:px-12">
+            <div className="mx-auto max-w-345 px-5 pb-10 pt-6 sm:px-8 lg:px-10 xl:px-12">
               {/* =================================================
                   METRICS
               ================================================= */}
@@ -1036,7 +1036,7 @@ function Dashboard() {
                                     ? "Reabrir tarefa"
                                     : "Concluir tarefa"
                                 }
-                                className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
+                                className={`flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full border-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 ${
                                   task.status ===
                                   "concluida"
                                     ? "border-slate-900 bg-slate-900 text-white"
@@ -1220,7 +1220,7 @@ function Dashboard() {
                             key={`${task.id}-${task.scheduled_date}`}
                             className="flex items-center gap-3 rounded-xl px-3 py-3 transition duration-200 hover:bg-slate-50 sm:px-4"
                           >
-                            <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 border-slate-300 bg-white" />
+                            <span className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full border-2 border-slate-300 bg-white" />
 
                             <button
                               type="button"
@@ -1482,7 +1482,7 @@ function Dashboard() {
                         "/apartments",
                       )
                     }
-                    className="group relative block w-full overflow-hidden rounded-2xl border border-white/70 bg-gradient-to-br from-[#eef2fb] to-[#dfe7f8] p-6 text-left shadow-[0_2px_10px_rgba(15,23,42,0.05)] transition duration-300 hover:shadow-[0_14px_34px_rgba(15,23,42,0.10)]"
+                    className="group relative block w-full overflow-hidden rounded-2xl border border-white/70 bg-linear-to-br from-[#eef2fb] to-[#dfe7f8] p-6 text-left shadow-[0_2px_10px_rgba(15,23,42,0.05)] transition duration-300 hover:shadow-[0_14px_34px_rgba(15,23,42,0.10)]"
                   >
                     <img
                       src={architectureImage}
@@ -1491,7 +1491,8 @@ function Dashboard() {
                       className="absolute -right-6 bottom-0 h-[72%] w-[58%] rounded-tl-[60px] object-cover opacity-90 transition duration-700 group-hover:scale-105"
                     />
 
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#eef2fb] via-[#eef2fb]/85 to-transparent" />
+                    <div className="absolute inset-0 
+                     from-[#eef2fb] via-[#eef2fb]/85 to-transparent" />
 
                     <div className="relative max-w-[62%]">
                       <p className="text-[22px] font-medium leading-tight tracking-[-0.02em] text-slate-900">
