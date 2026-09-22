@@ -10,6 +10,11 @@ from app.models.task import (
 
 
 class TaskBase(BaseModel):
+
+    # =====================================================
+    # IDENTIFICAÇÃO
+    # =====================================================
+
     title: str = Field(
         min_length=1,
         max_length=200,
@@ -21,6 +26,18 @@ class TaskBase(BaseModel):
     )
 
     urgency: UrgencyLevel = UrgencyLevel.MEDIUM
+
+    # =====================================================
+    # DEPARTAMENTO
+    # =====================================================
+
+    department_id: int = Field(
+        gt=0,
+    )
+
+    # =====================================================
+    # AGENDAMENTO
+    # =====================================================
 
     scheduled_date: date
 
@@ -59,13 +76,19 @@ class TaskBase(BaseModel):
         le=120,
     )
 
+    # =====================================================
+    # VALIDAÇÃO DA RECORRÊNCIA
+    # =====================================================
+
     @model_validator(mode="after")
     def validate_recurrence(self):
+
         # =================================================
         # NÃO RECORRENTE
         # =================================================
 
         if not self.is_recurring:
+
             self.recurrence_type = RecurrenceType.NONE
             self.recurrence_interval = None
 
@@ -76,6 +99,7 @@ class TaskBase(BaseModel):
         # =================================================
 
         if self.recurrence_type == RecurrenceType.NONE:
+
             raise ValueError(
                 "Uma tarefa recorrente precisa informar "
                 "um tipo de recorrência."
@@ -86,6 +110,7 @@ class TaskBase(BaseModel):
         # =================================================
 
         if self.recurrence_interval is None:
+
             raise ValueError(
                 "Uma tarefa recorrente precisa informar "
                 "o intervalo."
@@ -96,6 +121,7 @@ class TaskBase(BaseModel):
         # =================================================
 
         if self.recurrence_interval < 1:
+
             raise ValueError(
                 "O intervalo de recorrência deve ser "
                 "maior que zero."
@@ -109,6 +135,11 @@ class TaskCreate(TaskBase):
 
 
 class TaskUpdate(BaseModel):
+
+    # =====================================================
+    # IDENTIFICAÇÃO
+    # =====================================================
+
     title: str | None = Field(
         default=None,
         min_length=1,
@@ -123,6 +154,19 @@ class TaskUpdate(BaseModel):
     urgency: UrgencyLevel | None = None
 
     status: TaskStatus | None = None
+
+    # =====================================================
+    # DEPARTAMENTO
+    # =====================================================
+
+    department_id: int | None = Field(
+        default=None,
+        gt=0,
+    )
+
+    # =====================================================
+    # AGENDAMENTO
+    # =====================================================
 
     scheduled_date: date | None = None
 
@@ -163,19 +207,44 @@ class TaskUpdate(BaseModel):
 
 
 class TaskResponse(TaskBase):
+
+    # =====================================================
+    # IDENTIFICAÇÃO
+    # =====================================================
+
     id: int
+
+    # =====================================================
+    # STATUS
+    # =====================================================
 
     status: TaskStatus
 
     completed_at: datetime | None
 
+    # =====================================================
+    # RECORRÊNCIA
+    # =====================================================
+
     next_recurrence_date: date | None
 
+    # =====================================================
+    # AUTORIA
+    # =====================================================
+
     user_id: int
+
+    # =====================================================
+    # AUDITORIA
+    # =====================================================
 
     created_at: datetime
 
     updated_at: datetime
+
+    # =====================================================
+    # SQLALCHEMY → PYDANTIC
+    # =====================================================
 
     model_config = ConfigDict(
         from_attributes=True,

@@ -16,17 +16,21 @@ import CreateTask from "./pages/CreateTask";
 import EditTask from "./pages/EditTask";
 
 import Calendar from "./pages/Calendar";
+
 import GoogleCallback from "./pages/GoogleCallback";
 
 import Apartments from "./pages/Apartment";
 import CreateApartment from "./pages/CreateApartment";
 import EditApartment from "./pages/EditApartment";
 
+import Departments from "./pages/Departments";
+
+import MarketingDashboard from "./pages/MarketingDashboard";
+import MarketingCalendar from "./pages/MarketingCalendar";
 
 function App() {
   return (
     <Routes>
-
       {/* =====================================================
           LOGIN
       ===================================================== */}
@@ -46,7 +50,7 @@ function App() {
       />
 
       {/* =====================================================
-          DASHBOARD
+          DASHBOARD PRINCIPAL
       ===================================================== */}
 
       <Route
@@ -121,7 +125,7 @@ function App() {
       />
 
       {/* =====================================================
-          CALENDÁRIO
+          CALENDÁRIO GERAL
       ===================================================== */}
 
       <Route
@@ -165,6 +169,50 @@ function App() {
       />
 
       {/* =====================================================
+          DEPARTAMENTOS
+      ===================================================== */}
+
+      <Route
+        path="/departments"
+        element={
+          <ProtectedRoute>
+            <Departments />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* =====================================================
+          MARKETING
+      ===================================================== */}
+
+      <Route
+        path="/marketing"
+        element={
+          <ProtectedRoute>
+            <MarketingDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/marketing/calendar"
+        element={
+          <ProtectedRoute>
+            <MarketingCalendar />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* =====================================================
+          GOOGLE OAUTH CALLBACK
+      ===================================================== */}
+
+      <Route
+        path="/auth/google/callback"
+        element={<GoogleCallback />}
+      />
+
+      {/* =====================================================
           FALLBACK
       ===================================================== */}
 
@@ -177,12 +225,6 @@ function App() {
           />
         }
       />
-
-      <Route
-  path="/auth/google/callback"
-  element={<GoogleCallback />}
-/>
-
     </Routes>
   );
 }

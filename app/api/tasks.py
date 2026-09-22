@@ -1,5 +1,4 @@
 from datetime import date, timedelta
-
 from typing import Annotated
 
 from fastapi import (
@@ -9,10 +8,10 @@ from fastapi import (
     Query,
     status,
 )
-
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user
+from app.core.permissions import require_permission
 from app.database.database import get_db
 from app.models.task import TaskStatus, UrgencyLevel
 from app.models.task_occurrence import TaskOccurrenceStatus
@@ -32,6 +31,7 @@ DbSession = Annotated[
     Depends(get_db),
 ]
 
+
 CurrentUser = Annotated[
     User,
     Depends(get_current_user),
@@ -50,13 +50,15 @@ CurrentUser = Annotated[
 def create_task(
     task_data: TaskCreate,
     db: DbSession,
-    current_user: CurrentUser,
+    current_user: User = Depends(
+        require_permission("tasks.create")
+    ),
 ) -> TaskResponse:
 
     return TaskService.create(
-        db,
-        current_user,
-        task_data,
+        db=db,
+        user=current_user,
+        task_data=task_data,
     )
 
 
@@ -71,27 +73,22 @@ def create_task(
 def list_tasks(
     db: DbSession,
     current_user: CurrentUser,
-
     scheduled_date: Annotated[
         date | None,
         Query(),
     ] = None,
-
     start_date: Annotated[
         date | None,
         Query(),
     ] = None,
-
     end_date: Annotated[
         date | None,
         Query(),
     ] = None,
-
     urgency: Annotated[
         UrgencyLevel | None,
         Query(),
     ] = None,
-
     task_status: Annotated[
         TaskStatus | None,
         Query(),
@@ -103,9 +100,6 @@ def list_tasks(
     # =====================================================
 
     if scheduled_date is not None:
-
-        # Não faz sentido misturar uma data exata
-        # com intervalo.
 
         if start_date is not None or end_date is not None:
             raise HTTPException(
@@ -126,8 +120,6 @@ def list_tasks(
         #
         # 30 dias para trás
         # 30 dias para frente
-        #
-        # Evita gerar centenas de ocorrências.
         # -------------------------------------------------
 
         if start_date is None and end_date is None:
@@ -153,7 +145,9 @@ def list_tasks(
     if start_date > end_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="start_date não pode ser maior que end_date.",
+            detail=(
+                "start_date não pode ser maior que end_date."
+            ),
         )
 
     # =====================================================
@@ -167,7 +161,7 @@ def list_tasks(
         end_date=end_date,
     )
 
-    result = []
+    result: list[dict] = []
 
     for task, occurrence_date, occurrence in occurrences:
 
@@ -183,7 +177,7 @@ def list_tasks(
         # =================================================
         # FILTRO DE STATUS
         #
-        # O status exibido é o da ocorrência.
+        # O status exibido é o status da ocorrência.
         # =================================================
 
         if task_status is not None:
@@ -201,25 +195,56 @@ def list_tasks(
             "description": task.description,
             "urgency": task.urgency,
 
-            "status": TaskStatus(
-                occurrence.status.value
-            ),
+            # -------------------------------------------------
+            # DEPARTAMENTO
+            # -------------------------------------------------
+
+            "department_id": task.department_id,
+
+            # -------------------------------------------------
+            # AGENDAMENTO
+            # -------------------------------------------------
 
             "scheduled_date": occurrence_date,
             "scheduled_time": task.scheduled_time,
 
+            # -------------------------------------------------
+            # LOCALIZAÇÃO
+            # -------------------------------------------------
+
             "building": task.building,
             "block": task.block,
             "apartment": task.apartment,
+
+            # -------------------------------------------------
+            # RECORRÊNCIA
+            # -------------------------------------------------
 
             "is_recurring": task.is_recurring,
             "recurrence_type": task.recurrence_type,
             "recurrence_interval": task.recurrence_interval,
             "next_recurrence_date": task.next_recurrence_date,
 
+            # -------------------------------------------------
+            # STATUS DA OCORRÊNCIA
+            # -------------------------------------------------
+
+            "status": TaskStatus(
+                occurrence.status.value
+            ),
+
             "completed_at": occurrence.completed_at,
 
+            # -------------------------------------------------
+            # AUTORIA
+            # -------------------------------------------------
+
             "user_id": task.user_id,
+
+            # -------------------------------------------------
+            # AUDITORIA
+            # -------------------------------------------------
+
             "created_at": task.created_at,
             "updated_at": task.updated_at,
         }
@@ -242,11 +267,10 @@ def complete_task_occurrence(
     db: DbSession,
     current_user: CurrentUser,
 ):
-
     task = TaskService.get_by_id(
-        db,
-        current_user,
-        task_id,
+        db=db,
+        user=current_user,
+        task_id=task_id,
     )
 
     if task is None:
@@ -264,11 +288,14 @@ def complete_task_occurrence(
     if occurrence_date not in occurrence_dates:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Ocorrência não encontrada para esta tarefa.",
+            detail=(
+                "Ocorrência não encontrada para esta tarefa."
+            ),
         )
 
     occurrence = TaskService.complete_occurrence(
         db=db,
+        user=current_user,
         task=task,
         occurrence_date=occurrence_date,
     )
@@ -295,11 +322,10 @@ def reopen_task_occurrence(
     db: DbSession,
     current_user: CurrentUser,
 ):
-
     task = TaskService.get_by_id(
-        db,
-        current_user,
-        task_id,
+        db=db,
+        user=current_user,
+        task_id=task_id,
     )
 
     if task is None:
@@ -317,11 +343,14 @@ def reopen_task_occurrence(
     if occurrence_date not in occurrence_dates:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Ocorrência não encontrada para esta tarefa.",
+            detail=(
+                "Ocorrência não encontrada para esta tarefa."
+            ),
         )
 
     occurrence = TaskService.reopen_occurrence(
         db=db,
+        user=current_user,
         task=task,
         occurrence_date=occurrence_date,
     )
@@ -350,9 +379,9 @@ def get_task(
 ) -> TaskResponse:
 
     task = TaskService.get_by_id(
-        db,
-        current_user,
-        task_id,
+        db=db,
+        user=current_user,
+        task_id=task_id,
     )
 
     if task is None:
@@ -380,9 +409,9 @@ def update_task(
 ) -> TaskResponse:
 
     task = TaskService.get_by_id(
-        db,
-        current_user,
-        task_id,
+        db=db,
+        user=current_user,
+        task_id=task_id,
     )
 
     if task is None:
@@ -392,9 +421,10 @@ def update_task(
         )
 
     return TaskService.update(
-        db,
-        task,
-        task_data,
+        db=db,
+        user=current_user,
+        task=task,
+        task_data=task_data,
     )
 
 
@@ -413,9 +443,9 @@ def delete_task(
 ) -> None:
 
     task = TaskService.get_by_id(
-        db,
-        current_user,
-        task_id,
+        db=db,
+        user=current_user,
+        task_id=task_id,
     )
 
     if task is None:
@@ -425,6 +455,7 @@ def delete_task(
         )
 
     TaskService.delete(
-        db,
-        task,
+        db=db,
+        user=current_user,
+        task=task,
     )

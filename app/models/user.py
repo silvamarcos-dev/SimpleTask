@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, String, func
+from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.database import Base
@@ -9,10 +9,13 @@ from app.database.database import Base
 
 if TYPE_CHECKING:
     from app.models.apartment import Apartment
+    from app.models.company import Company
+    from app.models.department import Department
     from app.models.google_account import GoogleAccount
     from app.models.maintenance import Maintenance
+    from app.models.role import Role
     from app.models.task import Task
-
+    from app.models.marketing_post import MarketingPost
 
 class User(Base):
     __tablename__ = "users"
@@ -51,7 +54,62 @@ class User(Base):
     )
 
     # =====================================================
-    # RELACIONAMENTOS
+    # ORGANIZAÇÃO
+    # =====================================================
+
+    company_id: Mapped[int | None] = mapped_column(
+        ForeignKey(
+            "companies.id",
+            ondelete="RESTRICT",
+        ),
+        nullable=True,
+        index=True,
+    )
+
+    department_id: Mapped[int | None] = mapped_column(
+        ForeignKey(
+            "departments.id",
+            ondelete="RESTRICT",
+        ),
+        nullable=True,
+        index=True,
+    )
+
+    role_id: Mapped[int | None] = mapped_column(
+        ForeignKey(
+            "roles.id",
+            ondelete="RESTRICT",
+        ),
+        nullable=True,
+        index=True,
+    )
+
+    # =====================================================
+    # RELACIONAMENTOS ORGANIZACIONAIS
+    # =====================================================
+
+    company: Mapped["Company | None"] = relationship(
+        "Company",
+        back_populates="users",
+    )
+
+    department: Mapped["Department | None"] = relationship(
+        "Department",
+        back_populates="users",
+    )
+
+    role: Mapped["Role | None"] = relationship(
+        "Role",
+        back_populates="users",
+    )
+
+    marketing_posts: Mapped[list["MarketingPost"]] = relationship(
+        "MarketingPost",
+        back_populates="created_by",
+    )
+
+    # =====================================================
+    # RELACIONAMENTOS DO SISTEMA
     # =====================================================
 
     tasks: Mapped[list["Task"]] = relationship(

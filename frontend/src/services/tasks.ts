@@ -2,38 +2,13 @@ import { api } from "./api";
 
 import type {
   CreateTaskRequest,
-  RecurrenceType,
   Task,
+  UpdateTaskRequest,
 } from "../types/task";
 
 import type {
   TaskStatus,
-  UrgencyLevel,
 } from "../types/taskEnums";
-
-
-// =========================================================
-// ATUALIZAÇÃO DE TAREFA
-// =========================================================
-
-export interface UpdateTaskRequest {
-  title?: string;
-  description?: string | null;
-  urgency?: UrgencyLevel;
-  status?: TaskStatus;
-  scheduled_date?: string;
-  scheduled_time?: string | null;
-
-  // Localização
-  building?: string | null;
-  block?: string | null;
-  apartment?: string | null;
-
-  // Recorrência
-  is_recurring?: boolean;
-  recurrence_type?: RecurrenceType;
-  recurrence_interval?: number | null;
-}
 
 
 // =========================================================
@@ -42,9 +17,13 @@ export interface UpdateTaskRequest {
 
 export interface TaskOccurrenceResponse {
   id: number;
+
   task_id: number;
+
   occurrence_date: string;
+
   status: TaskStatus;
+
   completed_at: string | null;
 }
 

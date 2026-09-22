@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 import app.models
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -12,10 +12,14 @@ from app.api import (
     calendar,
     dashboard,
     maintenance,
+    departments,
     notifications,
     tasks,
+    marketing_post,
 )
 from app.core.config import get_settings
+from app.core.permissions import require_permission
+from app.models.user import User
 
 
 settings = get_settings()
@@ -80,7 +84,8 @@ app.include_router(calendar.router)
 app.include_router(notifications.router)
 app.include_router(maintenance.router)
 app.include_router(apartments.router)
-
+app.include_router(departments.router)
+app.include_router(marketing_post.router)
 
 # =====================================================
 # SISTEMA
@@ -99,4 +104,21 @@ def root() -> dict[str, str]:
 def health_check() -> dict[str, str]:
     return {
         "status": "healthy",
+    }
+
+
+# =====================================================
+# TESTE DE PERMISSÃO / RBAC
+# =====================================================
+
+@app.get("/test/permission", tags=["Sistema"])
+def test_permission(
+    current_user: User = Depends(
+        require_permission("users.create")
+    ),
+) -> dict[str, int | str]:
+    return {
+        "message": "Permissão concedida.",
+        "user_id": current_user.id,
+        "role_id": current_user.role_id,
     }

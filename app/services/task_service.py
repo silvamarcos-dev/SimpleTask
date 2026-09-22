@@ -3,9 +3,11 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 
 from dateutil.relativedelta import relativedelta
+from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models.department import Department
 from app.models.task import (
     RecurrenceType,
     Task,
@@ -21,6 +23,91 @@ from app.schemas.task import TaskCreate, TaskUpdate
 
 
 class TaskService:
+
+    # =====================================================
+    # AUTORIZAÇÃO
+    # =====================================================
+
+    @staticmethod
+    def _ensure_user_can_manage_department(
+        user: User,
+        task_department_id: int,
+        action: str,
+    ) -> None:
+        """
+        Verifica se o usuário pode executar uma operação
+        sobre uma tarefa de determinado departamento.
+
+        Administradores:
+            - podem operar em qualquer departamento.
+
+        Colaboradores:
+            - podem operar somente no próprio departamento.
+        """
+
+        role = user.role
+
+        if role is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Usuário não possui um perfil de acesso.",
+            )
+
+        required_all_permission = f"tasks.{action}_all"
+        required_permission = f"tasks.{action}"
+
+        permission_names = {
+            permission.name
+            for permission in role.permissions
+        }
+
+        # -------------------------------------------------
+        # ADMINISTRADOR / ACESSO GLOBAL
+        # -------------------------------------------------
+
+        if required_all_permission in permission_names:
+            return
+
+        # -------------------------------------------------
+        # ACESSO AO PRÓPRIO DEPARTAMENTO
+        # -------------------------------------------------
+
+        if required_permission not in permission_names:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permissão insuficiente.",
+            )
+
+        if user.department_id != task_department_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "Você não pode modificar tarefas "
+                    "de outro departamento."
+                ),
+            )
+
+    # =====================================================
+    # VERIFICAR DEPARTAMENTO
+    # =====================================================
+
+    @staticmethod
+    def _get_department(
+        db: Session,
+        department_id: int,
+    ) -> Department:
+        department = db.get(
+            Department,
+            department_id,
+        )
+
+        if department is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Departamento não encontrado.",
+            )
+
+        return department
 
     # =====================================================
     # RECORRÊNCIA
@@ -102,7 +189,6 @@ class TaskService:
 
         current_date = task.scheduled_date
 
-        # Segurança para evitar loop infinito.
         max_iterations = 10000
         iterations = 0
 
@@ -197,9 +283,6 @@ class TaskService:
 
     # =====================================================
     # SINCRONIZAR OCORRÊNCIAS
-    #
-    # Usado quando realmente queremos persistir
-    # ocorrências no banco.
     # =====================================================
 
     @staticmethod
@@ -246,6 +329,31 @@ class TaskService:
         task_data: TaskCreate,
     ) -> Task:
 
+        # -------------------------------------------------
+        # VALIDAR DEPARTAMENTO
+        # -------------------------------------------------
+
+        department_id = task_data.department_id
+
+        TaskService._get_department(
+            db=db,
+            department_id=department_id,
+        )
+
+        # -------------------------------------------------
+        # VALIDAR PERMISSÃO SOBRE O DEPARTAMENTO
+        # -------------------------------------------------
+
+        TaskService._ensure_user_can_manage_department(
+            user=user,
+            task_department_id=department_id,
+            action="create",
+        )
+
+        # -------------------------------------------------
+        # CRIAR TAREFA
+        # -------------------------------------------------
+
         task = Task(
             title=task_data.title.strip(),
             description=task_data.description,
@@ -272,6 +380,7 @@ class TaskService:
             recurrence_interval=task_data.recurrence_interval,
             status=TaskStatus.PENDING,
             user_id=user.id,
+            department_id=department_id,
         )
 
         db.add(task)
@@ -316,10 +425,40 @@ class TaskService:
 
         statement = select(Task).where(
             Task.id == task_id,
-            Task.user_id == user.id,
         )
 
-        return db.scalar(statement)
+        task = db.scalar(statement)
+
+        if task is None:
+            return None
+
+        # -------------------------------------------------
+        # VISUALIZAÇÃO
+        #
+        # Todos os usuários podem visualizar tarefas.
+        # A permissão tasks.view_all é a regra global.
+        # -------------------------------------------------
+
+        role = user.role
+
+        if role is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Usuário não possui um perfil de acesso.",
+            )
+
+        permission_names = {
+            permission.name
+            for permission in role.permissions
+        }
+
+        if "tasks.view_all" not in permission_names:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permissão insuficiente.",
+            )
+
+        return task
 
     # =====================================================
     # LISTAGEM NORMAL
@@ -334,9 +473,30 @@ class TaskService:
         status: TaskStatus | None = None,
     ) -> list[Task]:
 
-        statement = select(Task).where(
-            Task.user_id == user.id,
-        )
+        # -------------------------------------------------
+        # TODOS COM tasks.view_all VISUALIZAM TODAS
+        # -------------------------------------------------
+
+        role = user.role
+
+        if role is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Usuário não possui um perfil de acesso.",
+            )
+
+        permission_names = {
+            permission.name
+            for permission in role.permissions
+        }
+
+        if "tasks.view_all" not in permission_names:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permissão insuficiente.",
+            )
+
+        statement = select(Task)
 
         if scheduled_date is not None:
             statement = statement.where(
@@ -365,16 +525,6 @@ class TaskService:
 
     # =====================================================
     # LISTAGEM COM RECORRÊNCIA
-    #
-    # IMPORTANTE:
-    #
-    # Este método NÃO cria ocorrências no banco apenas
-    # porque estamos consultando a lista.
-    #
-    # Se a ocorrência já existe, usamos ela.
-    #
-    # Se não existe, criamos um objeto temporário em memória
-    # para representar a ocorrência.
     # =====================================================
 
     @staticmethod
@@ -388,8 +538,30 @@ class TaskService:
         if start_date > end_date:
             return []
 
+        # -------------------------------------------------
+        # TODOS COM tasks.view_all VISUALIZAM TODAS
+        # -------------------------------------------------
+
+        role = user.role
+
+        if role is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Usuário não possui um perfil de acesso.",
+            )
+
+        permission_names = {
+            permission.name
+            for permission in role.permissions
+        }
+
+        if "tasks.view_all" not in permission_names:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permissão insuficiente.",
+            )
+
         statement = select(Task).where(
-            Task.user_id == user.id,
             Task.scheduled_date <= end_date,
         )
 
@@ -420,7 +592,7 @@ class TaskService:
                 )
 
                 # -------------------------------------------------
-                # OCORRÊNCIA JÁ EXISTE
+                # OCORRÊNCIA EXISTENTE
                 # -------------------------------------------------
 
                 if occurrence is not None:
@@ -436,10 +608,7 @@ class TaskService:
                     continue
 
                 # -------------------------------------------------
-                # OCORRÊNCIA AINDA NÃO EXISTE
-                #
-                # NÃO SALVAMOS NO BANCO.
-                # Apenas representamos a ocorrência em memória.
+                # OCORRÊNCIA EM MEMÓRIA
                 # -------------------------------------------------
 
                 occurrence = TaskOccurrence(
@@ -473,15 +642,58 @@ class TaskService:
     @staticmethod
     def update(
         db: Session,
+        user: User,
         task: Task,
         task_data: TaskUpdate,
     ) -> Task:
+
+        # -------------------------------------------------
+        # SE O DEPARTAMENTO ESTIVER SENDO ALTERADO,
+        # VALIDAR O NOVO DEPARTAMENTO.
+        # -------------------------------------------------
 
         update_data = task_data.model_dump(
             exclude_unset=True,
         )
 
+        target_department_id = update_data.get(
+            "department_id",
+            task.department_id,
+        )
+
+        TaskService._get_department(
+            db=db,
+            department_id=target_department_id,
+        )
+
+        # -------------------------------------------------
+        # VALIDAR PERMISSÃO NO DEPARTAMENTO ATUAL
+        # -------------------------------------------------
+
+        TaskService._ensure_user_can_manage_department(
+            user=user,
+            task_department_id=task.department_id,
+            action="update",
+        )
+
+        # -------------------------------------------------
+        # SE ESTÁ MOVENDO A TAREFA PARA OUTRO DEPARTAMENTO,
+        # TAMBÉM PRECISA TER PERMISSÃO NO DESTINO.
+        # -------------------------------------------------
+
+        if target_department_id != task.department_id:
+
+            TaskService._ensure_user_can_manage_department(
+                user=user,
+                task_department_id=target_department_id,
+                action="update",
+            )
+
         previous_status = task.status
+
+        # -------------------------------------------------
+        # APLICAR ALTERAÇÕES
+        # -------------------------------------------------
 
         for field, value in update_data.items():
             setattr(
@@ -533,9 +745,16 @@ class TaskService:
     @staticmethod
     def complete_occurrence(
         db: Session,
+        user: User,
         task: Task,
         occurrence_date: date,
     ) -> TaskOccurrence:
+
+        TaskService._ensure_user_can_manage_department(
+            user=user,
+            task_department_id=task.department_id,
+            action="update",
+        )
 
         occurrence = TaskService.get_or_create_occurrence(
             db=db,
@@ -560,9 +779,16 @@ class TaskService:
     @staticmethod
     def reopen_occurrence(
         db: Session,
+        user: User,
         task: Task,
         occurrence_date: date,
     ) -> TaskOccurrence:
+
+        TaskService._ensure_user_can_manage_department(
+            user=user,
+            task_department_id=task.department_id,
+            action="update",
+        )
 
         occurrence = TaskService.get_or_create_occurrence(
             db=db,
@@ -585,8 +811,15 @@ class TaskService:
     @staticmethod
     def delete(
         db: Session,
+        user: User,
         task: Task,
     ) -> None:
+
+        TaskService._ensure_user_can_manage_department(
+            user=user,
+            task_department_id=task.department_id,
+            action="delete",
+        )
 
         db.delete(task)
         db.commit()

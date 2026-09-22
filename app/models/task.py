@@ -19,6 +19,7 @@ from app.database.database import Base
 
 
 if TYPE_CHECKING:
+    from app.models.department import Department
     from app.models.task_occurrence import TaskOccurrence
     from app.models.user import User
 
@@ -45,10 +46,18 @@ class RecurrenceType(str, Enum):
 class Task(Base):
     __tablename__ = "tasks"
 
+    # =====================================================
+    # IDENTIFICAÇÃO
+    # =====================================================
+
     id: Mapped[int] = mapped_column(
         primary_key=True,
         index=True,
     )
+
+    # =====================================================
+    # DADOS PRINCIPAIS
+    # =====================================================
 
     title: Mapped[str] = mapped_column(
         String(200),
@@ -77,6 +86,10 @@ class Task(Base):
         nullable=False,
         default=TaskStatus.PENDING,
     )
+
+    # =====================================================
+    # AGENDAMENTO
+    # =====================================================
 
     scheduled_date: Mapped[date] = mapped_column(
         Date,
@@ -147,7 +160,7 @@ class Task(Base):
     )
 
     # =====================================================
-    # RELACIONAMENTO
+    # AUTORIA
     # =====================================================
 
     user_id: Mapped[int] = mapped_column(
@@ -162,6 +175,33 @@ class Task(Base):
     user: Mapped["User"] = relationship(
         back_populates="tasks",
     )
+
+    # =====================================================
+    # DEPARTAMENTO
+    #
+    # Representa o departamento ao qual a tarefa pertence.
+    #
+    # user_id      = usuário que criou a tarefa
+    # department_id = departamento responsável pela tarefa
+    # =====================================================
+
+    department_id: Mapped[int] = mapped_column(
+        ForeignKey(
+            "departments.id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    department: Mapped["Department"] = relationship(
+        "Department",
+        back_populates="tasks",
+    )
+
+    # =====================================================
+    # OCORRÊNCIAS
+    # =====================================================
 
     occurrences: Mapped[list["TaskOccurrence"]] = relationship(
         back_populates="task",
