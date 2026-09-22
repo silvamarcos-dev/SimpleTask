@@ -699,7 +699,7 @@ function Dashboard() {
 
   if (loading || redirecting) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-white via-slate-50 to-blue-50">
+      <main className="flex min-h-screen items-center justify-center bg-linear-to-br from-white via-slate-50 to-blue-50">
         <div className="flex flex-col items-center text-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900" />
 

@@ -1,8 +1,4 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import DashboardSidebar from "../components/dashboard/DashboardSidebar";
@@ -18,13 +14,12 @@ import {
 
 import type { Task } from "../types/task";
 import type { Department } from "../types/department";
-
 import type {
+  CreateMarketingPostRequest,
+  MarketingContentType,
+  MarketingPlatform,
   MarketingPost,
   MarketingPostStatus,
-  MarketingPlatform,
-  MarketingContentType,
-  CreateMarketingPostRequest,
   UpdateMarketingPostRequest,
 } from "../types/marketingPost";
 
@@ -32,50 +27,106 @@ import type {
    CONSTANTS
 ========================================================= */
 
-type StatusCount =
-  Record<MarketingPostStatus, number>;
+type StatusCount = Record<MarketingPostStatus, number>;
 
-const STATUS_LABELS: Record<
-  MarketingPostStatus,
-  string
-> = {
+const STATUS_LABELS: Record<MarketingPostStatus, string> = {
   planejado: "Planejado",
   em_producao: "Em produção",
   publicado: "Publicado",
   cancelado: "Cancelado",
 };
 
-const STATUS_DOT: Record<
-  MarketingPostStatus,
-  string
-> = {
+const STATUS_DOT: Record<MarketingPostStatus, string> = {
   planejado: "bg-slate-400",
   em_producao: "bg-amber-400",
   publicado: "bg-emerald-500",
   cancelado: "bg-red-500",
 };
 
-const PLATFORM_LABELS: Record<
-  MarketingPlatform,
-  string
-> = {
+const PLATFORM_LABELS: Record<MarketingPlatform, string> = {
   instagram: "Instagram",
   facebook: "Facebook",
   linkedin: "LinkedIn",
   tiktok: "TikTok",
 };
 
-const CONTENT_TYPE_LABELS: Record<
-  MarketingContentType,
-  string
-> = {
+const CONTENT_TYPE_LABELS: Record<MarketingContentType, string> = {
   feed: "Feed",
   story: "Story",
   reels: "Reels",
   carousel: "Carrossel",
 };
 
+const PLATFORM_OPTIONS: {
+  value: MarketingPlatform;
+  label: string;
+}[] = [
+  {
+    value: "instagram",
+    label: "Instagram",
+  },
+  {
+    value: "facebook",
+    label: "Facebook",
+  },
+  {
+    value: "linkedin",
+    label: "LinkedIn",
+  },
+  {
+    value: "tiktok",
+    label: "TikTok",
+  },
+];
+
+const CONTENT_TYPE_OPTIONS: {
+  value: MarketingContentType;
+  label: string;
+}[] = [
+  {
+    value: "feed",
+    label: "Feed",
+  },
+  {
+    value: "story",
+    label: "Story",
+  },
+  {
+    value: "reels",
+    label: "Reels",
+  },
+  {
+    value: "carousel",
+    label: "Carrossel",
+  },
+];
+
+const STATUS_OPTIONS: {
+  value: MarketingPostStatus;
+  label: string;
+}[] = [
+  {
+    value: "planejado",
+    label: "Planejado",
+  },
+  {
+    value: "em_producao",
+    label: "Em produção",
+  },
+  {
+    value: "publicado",
+    label: "Publicado",
+  },
+  {
+    value: "cancelado",
+    label: "Cancelado",
+  },
+];
+
 const MONTHS_AHEAD = 2;
+
+const cardClass =
+  "rounded-2xl border border-white/70 bg-white/90 shadow-[0_2px_10px_rgba(15,23,42,0.05)] backdrop-blur-sm";
 
 /* =========================================================
    HELPERS
@@ -83,14 +134,14 @@ const MONTHS_AHEAD = 2;
 
 function formatDateKey(date: Date): string {
   const year = date.getFullYear();
-  const month = String(
-    date.getMonth() + 1,
-  ).padStart(2, "0");
-  const day = String(
-    date.getDate(),
-  ).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
+}
+
+function getTodayKey(): string {
+  return formatDateKey(new Date());
 }
 
 function getPostsRange() {
@@ -98,65 +149,39 @@ function getPostsRange() {
 
   return {
     startDate: formatDateKey(
-      new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        1,
-      ),
+      new Date(now.getFullYear(), now.getMonth(), 1),
     ),
     endDate: formatDateKey(
       new Date(
         now.getFullYear(),
-        now.getMonth() +
-          MONTHS_AHEAD +
-          1,
+        now.getMonth() + MONTHS_AHEAD + 1,
         0,
       ),
     ),
   };
 }
 
-function formatDate(
-  date: string,
-): string {
-  return new Intl.DateTimeFormat(
-    "pt-BR",
-    {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    },
-  ).format(
-    new Date(`${date}T00:00:00`),
-  );
+function formatDate(date: string): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(`${date}T00:00:00`));
 }
 
-function formatMonthShort(
-  date: string,
-): string {
-  return new Intl.DateTimeFormat(
-    "pt-BR",
-    {
-      month: "short",
-    },
-  )
-    .format(
-      new Date(`${date}T00:00:00`),
-    )
+function formatMonthShort(date: string): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    month: "short",
+  })
+    .format(new Date(`${date}T00:00:00`))
     .replace(".", "");
 }
 
-function formatTime(
-  time: string | null,
-): string {
-  return time
-    ? time.slice(0, 5)
-    : "Sem horário";
+function formatTime(time: string | null): string {
+  return time ? time.slice(0, 5) : "Sem horário";
 }
 
-function getTaskStatusLabel(
-  status: string,
-): string {
+function getTaskStatusLabel(status: string): string {
   switch (status) {
     case "pendente":
       return "Pendente";
@@ -172,9 +197,7 @@ function getTaskStatusLabel(
   }
 }
 
-function getTaskStatusClass(
-  status: string,
-): string {
+function getTaskStatusClass(status: string): string {
   switch (status) {
     case "em_andamento":
       return "bg-amber-50 text-amber-700";
@@ -187,9 +210,7 @@ function getTaskStatusClass(
   }
 }
 
-function getTaskStatusIcon(
-  status: string,
-): string {
+function getTaskStatusIcon(status: string): string {
   switch (status) {
     case "concluida":
       return "✓";
@@ -207,23 +228,12 @@ function sortBySchedule<
     scheduled_date: string;
     scheduled_time: string | null;
   },
->(
-  a: T,
-  b: T,
-): number {
-  const keyA = `${a.scheduled_date} ${
-    a.scheduled_time ?? "99:99"
-  }`;
-
-  const keyB = `${b.scheduled_date} ${
-    b.scheduled_time ?? "99:99"
-  }`;
+>(a: T, b: T): number {
+  const keyA = `${a.scheduled_date} ${a.scheduled_time ?? "99:99"}`;
+  const keyB = `${b.scheduled_date} ${b.scheduled_time ?? "99:99"}`;
 
   return keyA.localeCompare(keyB);
 }
-
-const cardClass =
-  "rounded-2xl border border-white/70 bg-white/90 shadow-[0_2px_10px_rgba(15,23,42,0.05)] backdrop-blur-sm";
 
 /* =========================================================
    SKELETON
@@ -232,29 +242,25 @@ const cardClass =
 function ListSkeleton() {
   return (
     <div className="space-y-3 p-5">
-      {[1, 2, 3, 4].map(
-        (item) => (
-          <div
-            key={item}
-            className="h-16 animate-pulse rounded-xl bg-slate-100"
-          />
-        ),
-      )}
+      {[1, 2, 3, 4].map((item) => (
+        <div
+          key={item}
+          className="h-16 animate-pulse rounded-xl bg-slate-100"
+        />
+      ))}
     </div>
   );
 }
 
 /* =========================================================
-   POST MODAL
+   MARKETING POST MODAL
 ========================================================= */
 
-interface MarketingPostModalProps {
+type MarketingPostModalProps = {
   post: MarketingPost | null;
   onClose: () => void;
-  onSaved: (
-    post: MarketingPost,
-  ) => void;
-}
+  onSaved: (post: MarketingPost) => void;
+};
 
 function MarketingPostModal({
   post,
@@ -263,161 +269,100 @@ function MarketingPostModal({
 }: MarketingPostModalProps) {
   const isEditing = post !== null;
 
-  const [title, setTitle] =
-    useState(
-      post?.title ?? "",
-    );
-
-  const [description, setDescription] =
-    useState(
-      post?.description ?? "",
-    );
-
-  const [scheduledDate, setScheduledDate] =
-    useState(
-      post?.scheduled_date ?? "",
-    );
-
-  const [scheduledTime, setScheduledTime] =
-    useState(
-      post?.scheduled_time?.slice(
-        0,
-        5,
-      ) ?? "",
-    );
-
-  const [platform, setPlatform] =
-    useState<MarketingPlatform>(
-      post?.platform ??
-        "instagram",
-    );
-
+  const [title, setTitle] = useState(post?.title ?? "");
+  const [description, setDescription] = useState(
+    post?.description ?? "",
+  );
+  const [scheduledDate, setScheduledDate] = useState(
+    post?.scheduled_date ?? getTodayKey(),
+  );
+  const [scheduledTime, setScheduledTime] = useState(
+    post?.scheduled_time?.slice(0, 5) ?? "",
+  );
+  const [platform, setPlatform] = useState<MarketingPlatform>(
+    post?.platform ?? "instagram",
+  );
   const [contentType, setContentType] =
     useState<MarketingContentType>(
-      post?.content_type ??
-        "feed",
+      post?.content_type ?? "feed",
     );
+  const [status, setStatus] = useState<MarketingPostStatus>(
+    post?.status ?? "planejado",
+  );
 
-  const [status, setStatus] =
-    useState<MarketingPostStatus>(
-      post?.status ??
-        "planejado",
-    );
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    function handleEscape(
-      event: KeyboardEvent,
-    ) {
-      if (event.key === "Escape") {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !saving) {
         onClose();
       }
-    }
+    };
 
-    window.addEventListener(
-      "keydown",
-      handleEscape,
-    );
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
 
-    const previousOverflow =
-      document.body.style
-        .overflow;
-
-    document.body.style.overflow =
-      "hidden";
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      window.removeEventListener(
-        "keydown",
-        handleEscape,
-      );
-
-      document.body.style.overflow =
-        previousOverflow;
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [onClose]);
+  }, [onClose, saving]);
 
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
 
-    setError("");
-
     if (!title.trim()) {
-      setError(
-        "Informe o título da postagem.",
-      );
+      setError("Informe o título da postagem.");
       return;
     }
 
     if (!scheduledDate) {
-      setError(
-        "Informe a data da postagem.",
-      );
+      setError("Informe a data da postagem.");
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
+    setError("");
 
     try {
       if (isEditing && post) {
-        const data: UpdateMarketingPostRequest =
-          {
-            title: title.trim(),
-            description:
-              description.trim() ||
-              null,
-            scheduled_date:
-              scheduledDate,
-            scheduled_time:
-              scheduledTime ||
-              null,
-            platform,
-            content_type:
-              contentType,
-            status,
-          };
+        const data: UpdateMarketingPostRequest = {
+          title: title.trim(),
+          description: description.trim() || null,
+          scheduled_date: scheduledDate,
+          scheduled_time: scheduledTime || null,
+          platform,
+          content_type: contentType,
+          status,
+        };
 
-        const updated =
-          await updateMarketingPost(
-            post.id,
-            data,
-          );
+        const updatedPost = await updateMarketingPost(
+          post.id,
+          data,
+        );
 
-        onSaved(updated);
-      } else {
-        const data: CreateMarketingPostRequest =
-          {
-            title: title.trim(),
-            description:
-              description.trim() ||
-              null,
-            scheduled_date:
-              scheduledDate,
-            scheduled_time:
-              scheduledTime ||
-              null,
-            platform,
-            content_type:
-              contentType,
-            status,
-          };
-
-        const created =
-          await createMarketingPost(
-            data,
-          );
-
-        onSaved(created);
+        onSaved(updatedPost);
+        return;
       }
 
-      onClose();
+      const data: CreateMarketingPostRequest = {
+        title: title.trim(),
+        description: description.trim() || null,
+        scheduled_date: scheduledDate,
+        scheduled_time: scheduledTime || null,
+        platform,
+        content_type: contentType,
+        status,
+      };
+
+      const createdPost = await createMarketingPost(data);
+
+      onSaved(createdPost);
     } catch (err) {
       console.error(err);
 
@@ -427,43 +372,25 @@ function MarketingPostModal({
           : "Não foi possível criar a postagem.",
       );
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   }
 
-  const fieldClass =
-    "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-300 hover:border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-900/10";
-
-  const labelClass =
-    "mb-2 block text-sm font-medium text-slate-600";
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-6">
-      {/* BACKDROP */}
-
-      <button
-        type="button"
-        aria-label="Fechar modal"
-        onClick={onClose}
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-[3px]"
-      />
-
-      {/* MODAL */}
-
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="marketing-post-modal-title"
-        className="relative flex max-h-[94vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[28px] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.28)] sm:max-h-[90vh] sm:rounded-[24px]"
-      >
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !saving) {
+          onClose();
+        }
+      }}
+    >
+      <div className="max-h-[92vh] w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
         {/* HEADER */}
 
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-6 py-5 sm:px-8">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
           <div>
-            <h2
-              id="marketing-post-modal-title"
-              className="text-xl font-semibold tracking-[-0.02em] text-slate-900"
-            >
+            <h2 className="text-xl font-semibold tracking-[-0.025em] text-slate-900">
               {isEditing
                 ? "Editar postagem"
                 : "Nova postagem"}
@@ -472,68 +399,50 @@ function MarketingPostModal({
             <p className="mt-1 text-sm text-slate-400">
               {isEditing
                 ? "Atualize as informações do conteúdo."
-                : "Planeje uma nova publicação de marketing."}
+                : "Planeje um novo conteúdo para o marketing."}
             </p>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            disabled={loading}
+            disabled={saving}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Fechar"
-            className="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
           >
-            <svg
-              width="19"
-              height="19"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.9"
-              strokeLinecap="round"
-            >
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
+            ×
           </button>
         </div>
 
-        {/* FORM */}
+        {/* BODY */}
 
         <form
+          id="marketing-post-form"
           onSubmit={handleSubmit}
-          className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8"
+          className="max-h-[calc(92vh-145px)] overflow-y-auto"
         >
-          {error && (
-            <div className="mb-5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
-              {error}
-            </div>
-          )}
-
-          <div className="space-y-5">
+          <div className="space-y-5 p-6">
             {/* TÍTULO */}
 
             <div>
               <label
-                htmlFor="marketing-title"
-                className={labelClass}
+                htmlFor="marketing-post-title"
+                className="mb-2 block text-sm font-medium text-slate-700"
               >
                 Título
               </label>
 
               <input
-                id="marketing-title"
+                id="marketing-post-title"
                 type="text"
                 value={title}
                 onChange={(event) =>
-                  setTitle(
-                    event.target.value,
-                  )
+                  setTitle(event.target.value)
                 }
-                placeholder="Ex.: Post institucional da Meta"
+                placeholder="Ex.: Reels — Apartamento Royal Palace"
                 maxLength={200}
-                required
-                disabled={loading}
-                className={fieldClass}
+                disabled={saving}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
               />
             </div>
 
@@ -541,216 +450,186 @@ function MarketingPostModal({
 
             <div>
               <label
-                htmlFor="marketing-description"
-                className={labelClass}
+                htmlFor="marketing-post-description"
+                className="mb-2 block text-sm font-medium text-slate-700"
               >
                 Descrição
               </label>
 
               <textarea
-                id="marketing-description"
+                id="marketing-post-description"
                 value={description}
                 onChange={(event) =>
-                  setDescription(
-                    event.target.value,
-                  )
+                  setDescription(event.target.value)
                 }
-                placeholder="Descreva o conteúdo, briefing ou observações..."
+                placeholder="Descreva o conteúdo, ideia, legenda ou observações..."
                 rows={4}
                 maxLength={5000}
-                disabled={loading}
-                className={`${fieldClass} resize-none`}
+                disabled={saving}
+                className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
               />
             </div>
 
-            {/* DATA + HORÁRIO */}
+            {/* DATA / HORÁRIO */}
 
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label
-                  htmlFor="marketing-date"
-                  className={labelClass}
+                  htmlFor="marketing-post-date"
+                  className="mb-2 block text-sm font-medium text-slate-700"
                 >
                   Data
                 </label>
 
                 <input
-                  id="marketing-date"
+                  id="marketing-post-date"
                   type="date"
                   value={scheduledDate}
                   onChange={(event) =>
-                    setScheduledDate(
-                      event.target.value,
-                    )
+                    setScheduledDate(event.target.value)
                   }
-                  required
-                  disabled={loading}
-                  className={fieldClass}
+                  disabled={saving}
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
                 />
               </div>
 
               <div>
                 <label
-                  htmlFor="marketing-time"
-                  className={labelClass}
+                  htmlFor="marketing-post-time"
+                  className="mb-2 block text-sm font-medium text-slate-700"
                 >
                   Horário
                 </label>
 
                 <input
-                  id="marketing-time"
+                  id="marketing-post-time"
                   type="time"
                   value={scheduledTime}
                   onChange={(event) =>
-                    setScheduledTime(
-                      event.target.value,
-                    )
+                    setScheduledTime(event.target.value)
                   }
-                  disabled={loading}
-                  className={fieldClass}
+                  disabled={saving}
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
                 />
               </div>
             </div>
 
-            {/* PLATAFORMA */}
+            {/* PLATAFORMA / TIPO */}
 
-            <div>
-              <label
-                htmlFor="marketing-platform"
-                className={labelClass}
-              >
-                Plataforma
-              </label>
-
-              <select
-                id="marketing-platform"
-                value={platform}
-                onChange={(event) =>
-                  setPlatform(
-                    event.target
-                      .value as MarketingPlatform,
-                  )
-                }
-                disabled={loading}
-                className={fieldClass}
-              >
-                {(
-                  Object.keys(
-                    PLATFORM_LABELS,
-                  ) as MarketingPlatform[]
-                ).map(
-                  (option) => (
-                    <option
-                      key={option}
-                      value={option}
-                    >
-                      {
-                        PLATFORM_LABELS[
-                          option
-                        ]
-                      }
-                    </option>
-                  ),
-                )}
-              </select>
-            </div>
-
-            {/* TIPO + STATUS */}
-
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label
-                  htmlFor="marketing-content-type"
-                  className={labelClass}
+                  htmlFor="marketing-post-platform"
+                  className="mb-2 block text-sm font-medium text-slate-700"
+                >
+                  Plataforma
+                </label>
+
+                <select
+                  id="marketing-post-platform"
+                  value={platform}
+                  onChange={(event) =>
+                    setPlatform(
+                      event.target.value as MarketingPlatform,
+                    )
+                  }
+                  disabled={saving}
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
+                >
+                  {PLATFORM_OPTIONS.map((option) => (
+                    <option
+                      key={option.value}
+                      value={option.value}
+                    >
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="marketing-post-content-type"
+                  className="mb-2 block text-sm font-medium text-slate-700"
                 >
                   Tipo de conteúdo
                 </label>
 
                 <select
-                  id="marketing-content-type"
+                  id="marketing-post-content-type"
                   value={contentType}
                   onChange={(event) =>
                     setContentType(
-                      event.target
-                        .value as MarketingContentType,
+                      event.target.value as MarketingContentType,
                     )
                   }
-                  disabled={loading}
-                  className={fieldClass}
+                  disabled={saving}
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
                 >
-                  {(
-                    Object.keys(
-                      CONTENT_TYPE_LABELS,
-                    ) as MarketingContentType[]
-                  ).map(
-                    (option) => (
-                      <option
-                        key={option}
-                        value={option}
-                      >
-                        {
-                          CONTENT_TYPE_LABELS[
-                            option
-                          ]
-                        }
-                      </option>
-                    ),
-                  )}
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="marketing-status"
-                  className={labelClass}
-                >
-                  Status
-                </label>
-
-                <select
-                  id="marketing-status"
-                  value={status}
-                  onChange={(event) =>
-                    setStatus(
-                      event.target
-                        .value as MarketingPostStatus,
-                    )
-                  }
-                  disabled={loading}
-                  className={fieldClass}
-                >
-                  {(
-                    Object.keys(
-                      STATUS_LABELS,
-                    ) as MarketingPostStatus[]
-                  ).map(
-                    (option) => (
-                      <option
-                        key={option}
-                        value={option}
-                      >
-                        {
-                          STATUS_LABELS[
-                            option
-                          ]
-                        }
-                      </option>
-                    ),
-                  )}
+                  {CONTENT_TYPE_OPTIONS.map((option) => (
+                    <option
+                      key={option.value}
+                      value={option.value}
+                    >
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
+
+            {/* STATUS */}
+
+            <div>
+              <label
+                htmlFor="marketing-post-status"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
+                Status
+              </label>
+
+              <select
+                id="marketing-post-status"
+                value={status}
+                onChange={(event) =>
+                  setStatus(
+                    event.target.value as MarketingPostStatus,
+                  )
+                }
+                disabled={saving}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
+              >
+                {STATUS_OPTIONS.map((option) => (
+                  <option
+                    key={option.value}
+                    value={option.value}
+                  >
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* ERROR */}
+
+            {error && (
+              <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+                <p className="text-sm text-red-600">
+                  {error}
+                </p>
+              </div>
+            )}
           </div>
         </form>
 
         {/* FOOTER */}
 
-        <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-slate-100 bg-white px-6 py-4 sm:flex-row sm:justify-end sm:px-8">
+        <div className="flex flex-col-reverse gap-3 border-t border-slate-100 bg-slate-50/60 px-6 py-4 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={onClose}
-            disabled={loading}
-            className="h-11 rounded-full border border-slate-200 px-6 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={saving}
+            className="h-11 rounded-xl px-5 text-sm font-medium text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -758,18 +637,10 @@ function MarketingPostModal({
           <button
             type="submit"
             form="marketing-post-form"
-            onClick={() => {
-              const form =
-                document.querySelector(
-                  "form[data-marketing-post-form='true']",
-                ) as HTMLFormElement | null;
-
-              form?.requestSubmit();
-            }}
-            disabled={loading}
-            className="inline-flex h-11 items-center justify-center rounded-full bg-slate-900 px-6 text-sm font-medium text-white shadow-[0_10px_25px_rgba(15,23,42,0.18)] transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={saving}
+            className="h-11 rounded-xl bg-slate-900 px-6 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading
+            {saving
               ? "Salvando..."
               : isEditing
                 ? "Salvar alterações"
@@ -788,70 +659,46 @@ function MarketingPostModal({
 function MarketingDashboard() {
   const navigate = useNavigate();
 
-  const [tasks, setTasks] =
-    useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [departments, setDepartments] = useState<Department[]>(
+    [],
+  );
+  const [posts, setPosts] = useState<MarketingPost[]>([]);
 
-  const [departments, setDepartments] =
-    useState<Department[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const [posts, setPosts] =
-    useState<MarketingPost[]>([]);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState("");
-
-  /* =====================================================
-     MODAL
-  ===================================================== */
-
+  const [modalOpen, setModalOpen] = useState(false);
   const [modalPost, setModalPost] =
-    useState<MarketingPost | null>(
-      null,
-    );
+    useState<MarketingPost | null>(null);
 
-  const [modalOpen, setModalOpen] =
-    useState(false);
-
-  const [deletingPostId, setDeletingPostId] =
-    useState<number | null>(null);
+  const [deletingPostId, setDeletingPostId] = useState<
+    number | null
+  >(null);
 
   /* =======================================================
      LOAD
   ======================================================= */
 
   async function loadDashboard() {
+    setLoading(true);
     setError("");
 
     try {
-      const {
-        startDate,
-        endDate,
-      } = getPostsRange();
+      const { startDate, endDate } = getPostsRange();
 
-      const [
-        tasksData,
-        departmentsData,
-        postsData,
-      ] = await Promise.all([
-        getTasks(),
-        getDepartments(),
-        getMarketingPosts(
-          startDate,
-          endDate,
-        ),
-      ]);
+      const [tasksData, departmentsData, postsData] =
+        await Promise.all([
+          getTasks(),
+          getDepartments(),
+          getMarketingPosts(startDate, endDate),
+        ]);
 
       setTasks(tasksData);
-      setDepartments(
-        departmentsData,
-      );
+      setDepartments(departmentsData);
       setPosts(postsData);
     } catch (err) {
       console.error(err);
-
       setError(
         "Não foi possível carregar o dashboard de marketing.",
       );
@@ -861,60 +708,11 @@ function MarketingDashboard() {
   }
 
   useEffect(() => {
-    let cancelled = false;
-
-    const {
-      startDate,
-      endDate,
-    } = getPostsRange();
-
-    Promise.all([
-      getTasks(),
-      getDepartments(),
-      getMarketingPosts(
-        startDate,
-        endDate,
-      ),
-    ])
-      .then(
-        ([
-          tasksData,
-          departmentsData,
-          postsData,
-        ]) => {
-          if (cancelled) {
-            return;
-          }
-
-          setTasks(tasksData);
-          setDepartments(
-            departmentsData,
-          );
-          setPosts(postsData);
-        },
-      )
-      .catch((err) => {
-        console.error(err);
-
-        if (!cancelled) {
-          setError(
-            "Não foi possível carregar o dashboard de marketing.",
-          );
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
+    void loadDashboard();
   }, []);
 
   /* =======================================================
-     MODAL ACTIONS
+     MODAL
   ======================================================= */
 
   function openCreateModal() {
@@ -922,9 +720,7 @@ function MarketingDashboard() {
     setModalOpen(true);
   }
 
-  function openEditModal(
-    post: MarketingPost,
-  ) {
+  function openEditModal(post: MarketingPost) {
     setModalPost(post);
     setModalOpen(true);
   }
@@ -934,59 +730,46 @@ function MarketingDashboard() {
     setModalPost(null);
   }
 
-  function handlePostSaved(
-    savedPost: MarketingPost,
-  ) {
+  function handlePostSaved(savedPost: MarketingPost) {
     setPosts((current) => {
       const exists = current.some(
-        (post) =>
-          post.id === savedPost.id,
+        (post) => post.id === savedPost.id,
       );
 
       if (exists) {
-        return current.map(
-          (post) =>
-            post.id ===
-            savedPost.id
-              ? savedPost
-              : post,
+        return current.map((post) =>
+          post.id === savedPost.id ? savedPost : post,
         );
       }
 
-      return [
-        ...current,
-        savedPost,
-      ].sort(sortBySchedule);
+      return [...current, savedPost];
     });
+
+    closeModal();
   }
 
   /* =======================================================
      DELETE
   ======================================================= */
 
-  async function handleDeletePost(
-    post: MarketingPost,
-  ) {
-    const confirmed =
-      window.confirm(
-        `Deseja realmente excluir a postagem "${post.title}"?`,
-      );
+  async function handleDeletePost(post: MarketingPost) {
+    const confirmed = window.confirm(
+      `Deseja realmente excluir a postagem "${post.title}"?`,
+    );
 
     if (!confirmed) {
       return;
     }
 
     setDeletingPostId(post.id);
+    setError("");
 
     try {
-      await deleteMarketingPost(
-        post.id,
-      );
+      await deleteMarketingPost(post.id);
 
       setPosts((current) =>
         current.filter(
-          (item) =>
-            item.id !== post.id,
+          (currentPost) => currentPost.id !== post.id,
         ),
       );
     } catch (err) {
@@ -1004,115 +787,84 @@ function MarketingDashboard() {
      DEPARTAMENTO MARKETING
   ======================================================= */
 
-  const marketingDepartment =
-    useMemo(
-      () =>
-        departments.find(
-          (department) =>
-            department.name
-              .trim()
-              .toLowerCase() ===
-            "marketing",
-        ),
-      [departments],
-    );
+  const marketingDepartment = useMemo(
+    () =>
+      departments.find(
+        (department) =>
+          department.name.trim().toLowerCase() ===
+          "marketing",
+      ),
+    [departments],
+  );
 
   /* =======================================================
      TAREFAS
   ======================================================= */
 
-  const marketingTasks =
-    useMemo(() => {
-      if (!marketingDepartment) {
-        return [];
-      }
+  const marketingTasks = useMemo(() => {
+    if (!marketingDepartment) {
+      return [];
+    }
 
-      return tasks
-        .filter(
-          (task) =>
-            task.department_id ===
-            marketingDepartment.id,
-        )
-        .sort(sortBySchedule);
-    }, [
-      tasks,
-      marketingDepartment,
-    ]);
+    return tasks
+      .filter(
+        (task) =>
+          task.department_id === marketingDepartment.id,
+      )
+      .sort(sortBySchedule);
+  }, [tasks, marketingDepartment]);
 
-  const taskMetrics =
-    useMemo(() => {
-      const byStatus = (
-        status: string,
-      ) =>
-        marketingTasks.filter(
-          (task) =>
-            (task.status as string) ===
-            status,
-        ).length;
+  const taskMetrics = useMemo(() => {
+    const byStatus = (status: string) =>
+      marketingTasks.filter(
+        (task) => (task.status as string) === status,
+      ).length;
 
-      return {
-        total:
-          marketingTasks.length,
+    return {
+      total: marketingTasks.length,
+      pending: byStatus("pendente"),
+      completed: byStatus("concluida"),
+    };
+  }, [marketingTasks]);
 
-        pending:
-          byStatus("pendente"),
-
-        completed:
-          byStatus("concluida"),
-      };
-    }, [marketingTasks]);
-
-  const recentTasks =
-    useMemo(
-      () =>
-        marketingTasks.slice(
-          0,
-          6,
-        ),
-      [marketingTasks],
-    );
+  const recentTasks = useMemo(
+    () => marketingTasks.slice(0, 6),
+    [marketingTasks],
+  );
 
   /* =======================================================
      POSTAGENS
   ======================================================= */
 
-  const postMetrics =
-    useMemo<StatusCount>(() => {
-      const counts: StatusCount =
-        {
-          planejado: 0,
-          em_producao: 0,
-          publicado: 0,
-          cancelado: 0,
-        };
+  const postMetrics = useMemo<StatusCount>(() => {
+    const counts: StatusCount = {
+      planejado: 0,
+      em_producao: 0,
+      publicado: 0,
+      cancelado: 0,
+    };
 
-      for (const post of posts) {
-        counts[post.status] += 1;
-      }
+    for (const post of posts) {
+      counts[post.status] += 1;
+    }
 
-      return counts;
-    }, [posts]);
+    return counts;
+  }, [posts]);
 
-  const todayKey =
-    formatDateKey(
-      new Date(),
-    );
+  const todayKey = getTodayKey();
 
-  const upcomingPosts =
-    useMemo(
-      () =>
-        posts
-          .filter(
-            (post) =>
-              post.scheduled_date >=
-                todayKey &&
-              post.status !==
-                "cancelado",
-          )
-          .sort(sortBySchedule)
-          .slice(0, 6),
-      [posts, todayKey],
-    );
+  const upcomingPosts = useMemo(
+    () =>
+      posts
+        .filter(
+          (post) =>
+            post.scheduled_date >= todayKey &&
+            post.status !== "cancelado",
+        )
+        .sort(sortBySchedule)
+        .slice(0, 6),
+    [posts, todayKey],
+  );
 
   /* =======================================================
      UI
@@ -1134,15 +886,14 @@ function MarketingDashboard() {
                 </h1>
 
                 <p className="mt-3 text-[15px] text-slate-500">
-                  Tarefas do departamento e planejamento de conteúdo.
+                  Tarefas do departamento e planejamento de
+                  conteúdo.
                 </p>
               </div>
 
               <button
                 type="button"
-                onClick={
-                  openCreateModal
-                }
+                onClick={openCreateModal}
                 className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-6 text-[15px] font-medium text-white shadow-[0_10px_25px_rgba(15,23,42,0.18)] transition duration-200 hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:w-auto"
               >
                 <span className="text-lg font-light leading-none">
@@ -1163,9 +914,7 @@ function MarketingDashboard() {
 
                 <button
                   type="button"
-                  onClick={
-                    loadDashboard
-                  }
+                  onClick={() => void loadDashboard()}
                   className="shrink-0 text-sm font-medium text-red-500 transition hover:text-red-700"
                 >
                   Tentar novamente
@@ -1176,17 +925,13 @@ function MarketingDashboard() {
             {/* METRICS */}
 
             <section className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-              <div
-                className={`${cardClass} p-5`}
-              >
+              <div className={`${cardClass} p-5`}>
                 <p className="text-sm font-medium text-slate-500">
                   Tarefas
                 </p>
 
                 <p className="mt-3 text-[2rem] font-semibold leading-none tracking-[-0.03em] text-slate-900">
-                  {loading
-                    ? "–"
-                    : taskMetrics.total}
+                  {loading ? "–" : taskMetrics.total}
                 </p>
 
                 <p className="mt-2 text-xs text-slate-400">
@@ -1194,17 +939,13 @@ function MarketingDashboard() {
                 </p>
               </div>
 
-              <div
-                className={`${cardClass} p-5`}
-              >
+              <div className={`${cardClass} p-5`}>
                 <p className="text-sm font-medium text-slate-500">
                   Pendentes
                 </p>
 
                 <p className="mt-3 text-[2rem] font-semibold leading-none tracking-[-0.03em] text-slate-900">
-                  {loading
-                    ? "–"
-                    : taskMetrics.pending}
+                  {loading ? "–" : taskMetrics.pending}
                 </p>
 
                 <p className="mt-2 text-xs text-slate-400">
@@ -1212,17 +953,13 @@ function MarketingDashboard() {
                 </p>
               </div>
 
-              <div
-                className={`${cardClass} p-5`}
-              >
+              <div className={`${cardClass} p-5`}>
                 <p className="text-sm font-medium text-slate-500">
                   Tarefas concluídas
                 </p>
 
                 <p className="mt-3 text-[2rem] font-semibold leading-none tracking-[-0.03em] text-slate-900">
-                  {loading
-                    ? "–"
-                    : taskMetrics.completed}
+                  {loading ? "–" : taskMetrics.completed}
                 </p>
 
                 <p className="mt-2 text-xs text-slate-400">
@@ -1230,17 +967,13 @@ function MarketingDashboard() {
                 </p>
               </div>
 
-              <div
-                className={`${cardClass} p-5`}
-              >
+              <div className={`${cardClass} p-5`}>
                 <p className="text-sm font-medium text-slate-500">
                   Postagens programadas
                 </p>
 
                 <p className="mt-3 text-[2rem] font-semibold leading-none tracking-[-0.03em] text-slate-900">
-                  {loading
-                    ? "–"
-                    : upcomingPosts.length}
+                  {loading ? "–" : upcomingPosts.length}
                 </p>
 
                 <p className="mt-2 text-xs text-slate-400">
@@ -1254,9 +987,7 @@ function MarketingDashboard() {
             <section className="mt-5 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
               {/* TAREFAS */}
 
-              <div
-                className={`overflow-hidden ${cardClass}`}
-              >
+              <div className={`overflow-hidden ${cardClass}`}>
                 <div className="flex items-center justify-between border-b border-slate-100 px-5 py-5 sm:px-6">
                   <div>
                     <h2 className="text-lg font-semibold tracking-[-0.02em] text-slate-900">
@@ -1270,11 +1001,7 @@ function MarketingDashboard() {
 
                   <button
                     type="button"
-                    onClick={() =>
-                      navigate(
-                        "/tasks",
-                      )
-                    }
+                    onClick={() => navigate("/tasks")}
                     className="group inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-blue-600 transition hover:text-blue-700"
                   >
                     Ver todas
@@ -1294,98 +1021,91 @@ function MarketingDashboard() {
                     </p>
 
                     <p className="mt-1 text-sm text-slate-400">
-                      Cadastre um departamento com o nome "Marketing".
+                      Cadastre um departamento com o nome
+                      "Marketing".
                     </p>
                   </div>
-                ) : recentTasks.length ===
-                  0 ? (
+                ) : recentTasks.length === 0 ? (
                   <div className="px-6 py-14 text-center">
                     <p className="text-[15px] font-medium text-slate-700">
                       Nenhuma tarefa de marketing
                     </p>
 
                     <p className="mt-1 text-sm text-slate-400">
-                      As tarefas do departamento aparecerão aqui.
+                      As tarefas do departamento aparecerão
+                      aqui.
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-2 p-3 sm:p-4">
-                    {recentTasks.map(
-                      (task) => {
-                        const status =
-                          task.status as string;
+                    {recentTasks.map((task) => {
+                      const taskStatus =
+                        task.status as string;
 
-                        return (
-                          <button
-                            key={
-                              task.id
-                            }
-                            type="button"
-                            onClick={() =>
-                              navigate(
-                                `/tasks/${task.id}/edit`,
-                              )
-                            }
-                            className="flex w-full items-center gap-3 rounded-xl bg-slate-50/80 px-3 py-3 text-left transition duration-200 hover:bg-slate-100/80 sm:px-4"
+                      return (
+                        <button
+                          key={task.id}
+                          type="button"
+                          onClick={() =>
+                            navigate(
+                              `/tasks/${task.id}/edit`,
+                            )
+                          }
+                          className="flex w-full items-center gap-3 rounded-xl bg-slate-50/80 px-3 py-3 text-left transition duration-200 hover:bg-slate-100/80 sm:px-4"
+                        >
+                          <span
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-semibold ${getTaskStatusClass(
+                              taskStatus,
+                            )}`}
                           >
+                            {getTaskStatusIcon(
+                              taskStatus,
+                            )}
+                          </span>
+
+                          <span className="min-w-0 flex-1">
                             <span
-                              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-semibold ${getTaskStatusClass(
-                                status,
-                              )}`}
+                              className={`block truncate text-[15px] font-medium ${
+                                taskStatus ===
+                                "concluida"
+                                  ? "text-slate-400 line-through"
+                                  : "text-slate-900"
+                              }`}
                             >
-                              {getTaskStatusIcon(
-                                status,
+                              {task.title}
+                            </span>
+
+                            <span className="mt-0.5 block text-xs text-slate-400">
+                              {formatDate(
+                                task.scheduled_date,
                               )}
+
+                              {task.scheduled_time &&
+                                ` · ${formatTime(
+                                  task.scheduled_time,
+                                )}`}
                             </span>
+                          </span>
 
-                            <span className="min-w-0 flex-1">
-                              <span
-                                className={`block truncate text-[15px] font-medium ${
-                                  status ===
-                                  "concluida"
-                                    ? "text-slate-400 line-through"
-                                    : "text-slate-900"
-                                }`}
-                              >
-                                {
-                                  task.title
-                                }
-                              </span>
-
-                              <span className="mt-0.5 block text-xs text-slate-400">
-                                {formatDate(
-                                  task.scheduled_date,
-                                )}
-
-                                {task.scheduled_time &&
-                                  ` · ${formatTime(
-                                    task.scheduled_time,
-                                  )}`}
-                              </span>
-                            </span>
-
-                            <span
-                              className={`hidden shrink-0 rounded-full px-2.5 py-1 text-xs font-medium sm:inline-flex ${getTaskStatusClass(
-                                status,
-                              )}`}
-                            >
-                              {getTaskStatusLabel(
-                                status,
-                              )}
-                            </span>
-                          </button>
-                        );
-                      },
-                    )}
+                          <span
+                            className={`hidden shrink-0 rounded-full px-2.5 py-1 text-xs font-medium sm:inline-flex ${getTaskStatusClass(
+                              taskStatus,
+                            )}`}
+                          >
+                            {getTaskStatusLabel(
+                              taskStatus,
+                            )}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
 
-              {/* PRÓXIMAS POSTAGENS */}
+              {/* POSTAGENS */}
 
-              <div
-                className={`overflow-hidden ${cardClass}`}
-              >
+              <div className={`overflow-hidden ${cardClass}`}>
                 <div className="flex items-center justify-between border-b border-slate-100 px-5 py-5 sm:px-6">
                   <div>
                     <h2 className="text-lg font-semibold tracking-[-0.02em] text-slate-900">
@@ -1400,9 +1120,7 @@ function MarketingDashboard() {
                   <button
                     type="button"
                     onClick={() =>
-                      navigate(
-                        "/marketing/calendar",
-                      )
+                      navigate("/marketing/calendar")
                     }
                     className="group inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-blue-600 transition hover:text-blue-700"
                   >
@@ -1416,8 +1134,7 @@ function MarketingDashboard() {
 
                 {loading ? (
                   <ListSkeleton />
-                ) : upcomingPosts.length ===
-                  0 ? (
+                ) : upcomingPosts.length === 0 ? (
                   <div className="px-6 py-14 text-center">
                     <p className="text-[15px] font-medium text-slate-700">
                       Nenhuma postagem programada
@@ -1425,9 +1142,7 @@ function MarketingDashboard() {
 
                     <button
                       type="button"
-                      onClick={
-                        openCreateModal
-                      }
+                      onClick={openCreateModal}
                       className="mt-1 text-sm font-medium text-blue-600 transition hover:text-blue-700"
                     >
                       Criar primeira postagem
@@ -1435,26 +1150,19 @@ function MarketingDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-2 p-3 sm:p-4">
-                    {upcomingPosts.map(
-                      (post) => (
-                        <div
-                          key={
-                            post.id
+                    {upcomingPosts.map((post) => (
+                      <div
+                        key={post.id}
+                        className="group flex items-center gap-3 rounded-xl px-3 py-3 transition duration-200 hover:bg-slate-50 sm:px-4"
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openEditModal(post)
                           }
-                          className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition duration-200 hover:bg-slate-50 sm:px-4"
+                          className="flex min-w-0 flex-1 items-center gap-3 text-left"
                         >
-                          {/* DATA */}
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openEditModal(
-                                post,
-                              )
-                            }
-                            className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl bg-[#eaf0fb]"
-                            title="Editar postagem"
-                          >
+                          <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl bg-[#eaf0fb]">
                             <span className="text-[10px] font-medium uppercase leading-none text-slate-400">
                               {formatMonthShort(
                                 post.scheduled_date,
@@ -1467,23 +1175,11 @@ function MarketingDashboard() {
                                 10,
                               )}
                             </span>
-                          </button>
+                          </span>
 
-                          {/* INFORMAÇÕES */}
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openEditModal(
-                                post,
-                              )
-                            }
-                            className="min-w-0 flex-1 text-left"
-                          >
+                          <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-medium text-slate-900">
-                              {
-                                post.title
-                              }
+                              {post.title}
                             </span>
 
                             <span className="mt-0.5 block truncate text-xs text-slate-400">
@@ -1503,91 +1199,62 @@ function MarketingDashboard() {
                                 post.scheduled_time,
                               )}
                             </span>
+                          </span>
+
+                          {post.scheduled_date ===
+                          todayKey ? (
+                            <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-600">
+                              Hoje
+                            </span>
+                          ) : (
+                            <span
+                              className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[post.status]}`}
+                              title={
+                                STATUS_LABELS[
+                                  post.status
+                                ]
+                              }
+                            />
+                          )}
+                        </button>
+
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openEditModal(post)
+                            }
+                            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                            title="Editar postagem"
+                            aria-label="Editar postagem"
+                          >
+                            ✎
                           </button>
 
-                          {/* AÇÕES */}
-
-                          <div className="flex shrink-0 items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                openEditModal(
-                                  post,
-                                )
-                              }
-                              title="Editar postagem"
-                              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                            >
-                              <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M12 20h9" />
-                                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" />
-                              </svg>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleDeletePost(
-                                  post,
-                                )
-                              }
-                              disabled={
-                                deletingPostId ===
-                                post.id
-                              }
-                              title="Excluir postagem"
-                              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {deletingPostId ===
-                              post.id ? (
-                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-red-500" />
-                              ) : (
-                                <svg
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.8"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M3 6h18" />
-                                  <path d="M8 6V4h8v2" />
-                                  <path d="m19 6-1 14H6L5 6" />
-                                  <path d="M10 11v5M14 11v5" />
-                                </svg>
-                              )}
-                            </button>
-
-                            {post.scheduled_date ===
-                            todayKey ? (
-                              <span className="ml-1 hidden shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-600 sm:inline-flex">
-                                Hoje
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void handleDeletePost(post)
+                            }
+                            disabled={
+                              deletingPostId === post.id
+                            }
+                            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            title="Excluir postagem"
+                            aria-label="Excluir postagem"
+                          >
+                            {deletingPostId ===
+                            post.id ? (
+                              <span className="text-xs">
+                                ...
                               </span>
                             ) : (
-                              <span
-                                className={`ml-1 hidden h-2 w-2 shrink-0 rounded-full sm:block ${STATUS_DOT[post.status]}`}
-                                title={
-                                  STATUS_LABELS[
-                                    post.status
-                                  ]
-                                }
-                              />
+                              "⌫"
                             )}
-                          </div>
+                          </button>
                         </div>
-                      ),
-                    )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -1605,8 +1272,7 @@ function MarketingDashboard() {
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-400">
-                    Mês atual e os próximos{" "}
-                    {MONTHS_AHEAD}
+                    Mês atual e os próximos {MONTHS_AHEAD}
                   </p>
                 </div>
               </div>
@@ -1616,53 +1282,41 @@ function MarketingDashboard() {
                   Object.keys(
                     STATUS_LABELS,
                   ) as MarketingPostStatus[]
-                ).map(
-                  (status) => (
-                    <div
-                      key={status}
-                      className="rounded-xl bg-slate-50/80 px-4 py-4"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`h-2 w-2 rounded-full ${STATUS_DOT[status]}`}
-                        />
+                ).map((postStatus) => (
+                  <div
+                    key={postStatus}
+                    className="rounded-xl bg-slate-50/80 px-4 py-4"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`h-2 w-2 rounded-full ${STATUS_DOT[postStatus]}`}
+                      />
 
-                        <span className="text-sm font-medium text-slate-500">
-                          {
-                            STATUS_LABELS[
-                              status
-                            ]
-                          }
-                        </span>
-                      </div>
-
-                      <p className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-slate-900">
-                        {loading
-                          ? "–"
-                          : postMetrics[
-                              status
-                            ]}
-                      </p>
+                      <span className="text-sm font-medium text-slate-500">
+                        {STATUS_LABELS[postStatus]}
+                      </span>
                     </div>
-                  ),
-                )}
+
+                    <p className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-slate-900">
+                      {loading
+                        ? "–"
+                        : postMetrics[postStatus]}
+                    </p>
+                  </div>
+                ))}
               </div>
             </section>
           </div>
         </main>
       </div>
 
-      {/* =====================================================
-          MODAL
-      ===================================================== */}
+      {/* MODAL */}
 
       {modalOpen && (
         <MarketingPostModal
           post={modalPost}
           onClose={closeModal}
-          onSaved={
-            handlePostSaved
-          }
+          onSaved={handlePostSaved}
         />
       )}
     </div>
