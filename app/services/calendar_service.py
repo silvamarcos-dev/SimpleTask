@@ -52,9 +52,7 @@ class CalendarService:
         current_date = start_date
 
         while current_date <= end_date:
-
             calendar[current_date] = []
-
             current_date += timedelta(days=1)
 
         # =====================================================
@@ -87,34 +85,48 @@ class CalendarService:
                 )
 
                 # =================================================
-                # CRIAR UMA REPRESENTAÇÃO DA OCORRÊNCIA
+                # CRIAR REPRESENTAÇÃO DA OCORRÊNCIA
                 # =================================================
                 #
-                # O calendário ainda trabalha com Task.
+                # O calendário trabalha com Task.
                 #
                 # Portanto, usamos uma cópia do objeto para que
-                # o status e completed_at representem SOMENTE
+                # status e completed_at representem SOMENTE
                 # aquela ocorrência.
                 #
+                # =================================================
+
                 occurrence_task = Task(
                     id=task.id,
                     title=task.title,
                     description=task.description,
+
+                    # IMPORTANTE:
+                    # manter o departamento da tarefa original
+                    department_id=task.department_id,
+
                     urgency=task.urgency,
+
                     status=TaskStatus(
                         occurrence.status.value
                     ),
+
                     scheduled_date=occurrence_date,
                     scheduled_time=task.scheduled_time,
+
                     building=task.building,
                     block=task.block,
                     apartment=task.apartment,
+
                     is_recurring=task.is_recurring,
                     recurrence_type=task.recurrence_type,
                     recurrence_interval=task.recurrence_interval,
                     next_recurrence_date=task.next_recurrence_date,
+
                     completed_at=occurrence.completed_at,
+
                     user_id=task.user_id,
+
                     created_at=task.created_at,
                     updated_at=task.updated_at,
                 )
